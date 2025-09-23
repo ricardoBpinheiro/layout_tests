@@ -8,3 +8,8 @@ class SelectMenuItem extends SidebarEvent {
   final String menuItem;
   SelectMenuItem(this.menuItem);
 }
+
+class SelectCompany extends SidebarEvent {
+  final String company;
+  SelectCompany(this.company);
+}

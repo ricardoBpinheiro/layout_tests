@@ -1,8 +1,5 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:layout_tests/core/layout/app_shell.dart';
-import 'package:layout_tests/features/sidebar/bloc/side_bar_bloc.dart';
-import 'package:layout_tests/features/user/bloc/user_bloc.dart';
 import 'package:layout_tests/pages/dashboard_page.dart';
 import 'package:layout_tests/pages/login_page.dart';
 import 'package:layout_tests/pages/not_found_page.dart';
@@ -18,13 +15,7 @@ class AppRouter {
       GoRoute(path: '/login', builder: (context, state) => LoginPage()),
       ShellRoute(
         builder: (context, state, child) {
-          return BlocProvider.value(
-            value: BlocProvider.of<SidebarBloc>(context),
-            child: BlocProvider.value(
-              value: BlocProvider.of<UserBloc>(context),
-              child: AppShell(child: child),
-            ),
-          );
+          return AppShell(child: child);
         },
         routes: [
           GoRoute(

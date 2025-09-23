@@ -38,14 +38,15 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: Row(
         children: [
-          // Sidebar
           BlocBuilder<SidebarBloc, SidebarState>(
             builder: (context, state) {
               bool isExpanded = true;
               String selectedItem = _getSelectedItemFromRoute(location);
+              String selectedCompany = 'Empresa A';
 
               if (state is SidebarExpanded) {
                 isExpanded = state.isExpanded;
+                selectedCompany = state.selectedCompany;
               }
 
               return ClipRect(
@@ -56,6 +57,7 @@ class AppShell extends StatelessWidget {
                     isExpanded: isExpanded,
                     selectedItem: selectedItem,
                     currentRoute: location,
+                    selectedCompany: selectedCompany,
                   ),
                 ),
               );

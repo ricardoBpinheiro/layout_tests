@@ -7,12 +7,14 @@ class CustomSidebar extends StatelessWidget {
   final bool isExpanded;
   final String selectedItem;
   final String currentRoute;
+  final String? selectedCompany;
 
   const CustomSidebar({
     super.key,
     required this.isExpanded,
     required this.selectedItem,
     required this.currentRoute,
+    this.selectedCompany,
   });
 
   @override
@@ -24,6 +26,8 @@ class CustomSidebar extends StatelessWidget {
       {'icon': Icons.analytics, 'title': 'Relatórios', 'route': '/reports'},
       {'icon': Icons.settings, 'title': 'Configurações', 'route': '/settings'},
     ];
+
+    final companies = ['Empresa A', 'Empresa B', 'Empresa C', 'Empresa D'];
 
     return Container(
       width: isExpanded ? 200 : 70,
@@ -70,6 +74,57 @@ class CustomSidebar extends StatelessWidget {
                     child: Icon(Icons.business, color: Colors.white, size: 30),
                   ),
           ),
+          if (isExpanded)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Container(
+                width: double.infinity,
+                height: 36,
+                padding: EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: selectedCompany ?? 'Empresa A',
+                    isExpanded: true,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    dropdownColor: Color(0xFF34495E),
+                    items: companies.map<DropdownMenuItem<String>>((
+                      String company,
+                    ) {
+                      return DropdownMenuItem<String>(
+                        value: company,
+                        child: Text(
+                          company,
+                          style: TextStyle(color: Colors.white, fontSize: 13),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        context.read<SidebarBloc>().add(
+                          SelectCompany(newValue),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               padding: EdgeInsets.symmetric(vertical: 8),

@@ -108,6 +108,9 @@ class CustomHeader extends StatelessWidget {
                               leading: Icon(Icons.person),
                               title: Text('Perfil'),
                               contentPadding: EdgeInsets.zero,
+                              onTap: () {
+                                context.go('/account');
+                              },
                             ),
                           ),
                           PopupMenuItem(
@@ -115,6 +118,9 @@ class CustomHeader extends StatelessWidget {
                               leading: Icon(Icons.settings),
                               title: Text('Configurações'),
                               contentPadding: EdgeInsets.zero,
+                              onTap: () {
+                                context.go('/settings');
+                              },
                             ),
                           ),
                           PopupMenuItem(
