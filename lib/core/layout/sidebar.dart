@@ -22,7 +22,7 @@ class CustomSidebar extends StatelessWidget {
     final menuItems = [
       {'icon': Icons.dashboard, 'title': 'Dashboard', 'route': '/dashboard'},
       {'icon': Icons.people, 'title': 'Usuários', 'route': '/users'},
-      {'icon': Icons.inventory, 'title': 'Produtos', 'route': '/products'},
+      {'icon': Icons.inventory, 'title': 'Templates', 'route': '/templates'},
       {'icon': Icons.analytics, 'title': 'Relatórios', 'route': '/reports'},
       {'icon': Icons.settings, 'title': 'Configurações', 'route': '/settings'},
     ];
