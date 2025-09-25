@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:layout_tests/features/inspections/models/field_types.dart';
 import 'package:layout_tests/features/inspections/models/inspection_field.dart';
 import 'package:layout_tests/features/inspections/models/inspection_step.dart';
+import 'package:layout_tests/features/inspections/widgets/field_type_selector_modal.dart';
 import 'package:layout_tests/features/inspections/widgets/step_builder.dart';
 import 'package:layout_tests/features/user/models/user_model.dart';
 
@@ -127,20 +128,100 @@ class _InspectionTemplateFormScreenState
     });
   }
 
-  void _addFieldToStep(int stepIndex) {
+  void _addFieldToStep(int stepIndex, FieldType fieldType) {
     setState(() {
       _steps[stepIndex] = _steps[stepIndex].copyWith(
         fields: [
           ..._steps[stepIndex].fields,
           InspectionField(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            label: 'Campo ${_steps[stepIndex].fields.length + 1}',
-            type: FieldType.text,
+            label: _getDefaultFieldLabel(fieldType),
+            type: fieldType,
             order: _steps[stepIndex].fields.length,
           ),
         ],
       );
     });
+  }
+
+  /// Adiciona um conjunto pré-definido de respostas a um step
+  void _addPredefinedSetFieldToStep(int stepIndex, String predefinedSetKey) {
+    final predefinedSets = <String, List<String>>{
+      'Seguro': ['Seguro', 'Em risco', 'N/D'],
+      'Qualidade': ['Bom', 'Razoável', 'Ruim', 'N/D'],
+      'Status': ['Aprovado', 'Falha', 'N/D'],
+      'Confirmação': ['Sim', 'Não', 'N/D'],
+      'Conforme': ['Conforme', 'Não conforme', 'N/D'],
+    };
+
+    final options = predefinedSets[predefinedSetKey];
+
+    if (options == null) {
+      debugPrint('Conjunto não encontrado: $predefinedSetKey');
+      return;
+    }
+
+    setState(() {
+      _steps[stepIndex] = _steps[stepIndex].copyWith(
+        fields: [
+          ..._steps[stepIndex].fields,
+          InspectionField(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            label: predefinedSetKey,
+            type: FieldType.select,
+            order: _steps[stepIndex].fields.length,
+            options: options,
+          ),
+        ],
+      );
+    });
+  }
+
+  String _getDefaultFieldLabel(FieldType type) {
+    switch (type) {
+      case FieldType.text:
+        return 'Pergunta de texto';
+      case FieldType.number:
+        return 'Pergunta numérica';
+      case FieldType.email:
+        return 'Email';
+      case FieldType.phone:
+        return 'Telefone';
+      case FieldType.select:
+        return 'Múltipla escolha';
+      case FieldType.multiSelect:
+        return 'Caixa de seleção';
+      case FieldType.checkbox:
+        return 'Pergunta sim/não';
+      case FieldType.photo:
+        return 'Upload de arquivo';
+      case FieldType.signature:
+        return 'Assinatura';
+      case FieldType.date:
+        return 'Data';
+      case FieldType.time:
+        return 'Horário';
+      case FieldType.rating:
+        return 'Escala de avaliação';
+      case FieldType.predefinedSet:
+        // TODO: Handle this case.
+        throw UnimplementedError();
+    }
+  }
+
+  void _showFieldTypeSelector(int stepIndex) {
+    showDialog(
+      context: context,
+      builder: (context) => FieldTypeSelectorModal(
+        onFieldTypeSelected: (FieldType fieldType, {String? predefinedSet}) {
+          if (predefinedSet != null) {
+            _addPredefinedSetFieldToStep(stepIndex, predefinedSet);
+          } else {
+            _addFieldToStep(stepIndex, fieldType);
+          }
+        },
+      ),
+    );
   }
 
   void _removeFieldFromStep(int stepIndex, int fieldIndex) {
@@ -556,105 +637,86 @@ class _InspectionTemplateFormScreenState
   Widget _buildCreationTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Etapas do Template',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1F2937),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Lista de Etapas
+          if (_steps.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(48),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: _addNewStep,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Nova Etapa'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.assignment, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Nenhuma etapa criada',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Clique no botão abaixo para começar',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...List.generate(_steps.length, (index) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                child: StepBuilder(
+                  step: _steps[index],
+                  stepIndex: index,
+                  onStepUpdated: (updatedStep) {
+                    setState(() {
+                      _steps[index] = updatedStep;
+                    });
+                  },
+                  onStepDeleted: () => _removeStep(index),
+                  onAddField: () => _showFieldTypeSelector(index),
+                  onRemoveField: (fieldIndex) =>
+                      _removeFieldFromStep(index, fieldIndex),
                 ),
-              ],
-            ),
+              );
+            }),
 
-            const SizedBox(height: 24),
-
-            // Lista de Etapas
-            if (_steps.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(48),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
+          // Botão para adicionar nova etapa
+          const SizedBox(height: 20),
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: _addNewStep,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Adicionar Etapa'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                side: const BorderSide(color: Color(0xFF2563EB)),
+                foregroundColor: const Color(0xFF2563EB),
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
-                child: Column(
-                  children: [
-                    Icon(Icons.assignment, size: 48, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Nenhuma etapa criada',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Clique em "Nova Etapa" para começar',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...List.generate(_steps.length, (index) {
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  child: StepBuilder(
-                    step: _steps[index],
-                    stepIndex: index,
-                    onStepUpdated: (updatedStep) {
-                      setState(() {
-                        _steps[index] = updatedStep;
-                      });
-                    },
-                    onStepDeleted: () => _removeStep(index),
-                    onAddField: () => _addFieldToStep(index),
-                    onRemoveField: (fieldIndex) =>
-                        _removeFieldFromStep(index, fieldIndex),
-                  ),
-                );
-              }),
-          ],
-        ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
