@@ -57,7 +57,7 @@ class _FieldBuilderState extends State<FieldBuilder> {
     final updatedField = widget.field.copyWith(
       label: _labelController.text,
       hint: _hintController.text.isEmpty ? null : _hintController.text,
-      options: options,
+      // options: options,
     );
     widget.onFieldUpdated(updatedField);
   }
@@ -258,7 +258,7 @@ class _FieldBuilderState extends State<FieldBuilder> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      option,
+                      option.label,
                       style: const TextStyle(
                         fontSize: 10,
                         color: Color(0xFF10B981),
@@ -388,7 +388,7 @@ class _FieldBuilderState extends State<FieldBuilder> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(option, style: const TextStyle(fontSize: 11)),
+                      Text(option.label, style: const TextStyle(fontSize: 11)),
                     ],
                   ),
                 );

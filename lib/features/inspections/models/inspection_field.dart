@@ -1,4 +1,6 @@
+import 'package:layout_tests/features/inspections/models/field_option.dart';
 import 'package:layout_tests/features/inspections/models/field_types.dart';
+import 'package:layout_tests/features/inspections/models/question_rule.dart';
 
 class InspectionField {
   final String id;
@@ -6,9 +8,10 @@ class InspectionField {
   final FieldType type;
   final bool required;
   final String? hint;
-  final List<String>? options; // Para campos de seleção
+  final List<FieldOption>? options; // Para campos de seleção
   final String? validation; // Regex ou regra de validação
   final int order;
+  final List<QuestionRule>? rules;
 
   InspectionField({
     required this.id,
@@ -19,6 +22,7 @@ class InspectionField {
     this.options,
     this.validation,
     required this.order,
+    this.rules,
   });
 
   InspectionField copyWith({
@@ -27,9 +31,10 @@ class InspectionField {
     FieldType? type,
     bool? required,
     String? hint,
-    List<String>? options,
+    List<FieldOption>? options,
     String? validation,
     int? order,
+    List<QuestionRule>? rules,
   }) {
     return InspectionField(
       id: id ?? this.id,
@@ -40,6 +45,7 @@ class InspectionField {
       options: options ?? this.options,
       validation: validation ?? this.validation,
       order: order ?? this.order,
+      rules: rules ?? this.rules,
     );
   }
 }

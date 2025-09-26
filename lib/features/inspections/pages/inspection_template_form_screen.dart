@@ -161,20 +161,20 @@ class _InspectionTemplateFormScreenState
       return;
     }
 
-    setState(() {
-      _steps[stepIndex] = _steps[stepIndex].copyWith(
-        fields: [
-          ..._steps[stepIndex].fields,
-          InspectionField(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            label: predefinedSetKey,
-            type: FieldType.select,
-            order: _steps[stepIndex].fields.length,
-            options: options,
-          ),
-        ],
-      );
-    });
+    // setState(() {
+    //   _steps[stepIndex] = _steps[stepIndex].copyWith(
+    //     fields: [
+    //       ..._steps[stepIndex].fields,
+    //       InspectionField(
+    //         id: DateTime.now().millisecondsSinceEpoch.toString(),
+    //         label: predefinedSetKey,
+    //         type: FieldType.select,
+    //         order: _steps[stepIndex].fields.length,
+    //         options: options,
+    //       ),
+    //     ],
+    //   );
+    // });
   }
 
   String _getDefaultFieldLabel(FieldType type) {
