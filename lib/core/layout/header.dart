@@ -9,44 +9,7 @@ import 'package:layout_tests/features/user/bloc/user_bloc.dart';
 class CustomHeader extends StatelessWidget {
   final String pageTitle;
 
-  CustomHeader({super.key, required this.pageTitle});
-
-  List<NotificationItem> notifications = [
-    NotificationItem(
-      id: '1',
-      title: 'Novo pedido recebido',
-      message:
-          'Você recebeu um novo pedido #12345. Clique para visualizar os detalhes.',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-      type: NotificationType.success,
-    ),
-    NotificationItem(
-      id: '2',
-      title: 'Sistema será atualizado',
-      message:
-          'Manutenção programada para hoje às 23:00. O sistema ficará indisponível por 30 minutos.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      type: NotificationType.warning,
-      isRead: true,
-    ),
-    NotificationItem(
-      id: '3',
-      title: 'Erro no processamento',
-      message:
-          'Ocorreu um erro ao processar o pagamento #98765. Verifique os logs do sistema.',
-      timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-      type: NotificationType.error,
-    ),
-    NotificationItem(
-      id: '4',
-      title: 'Backup concluído',
-      message:
-          'O backup automático foi concluído com sucesso. Todos os dados estão seguros.',
-      timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      type: NotificationType.info,
-      isRead: true,
-    ),
-  ];
+  const CustomHeader({super.key, required this.pageTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -79,14 +42,7 @@ class CustomHeader extends StatelessWidget {
 
             IconButton(
               onPressed: () {
-                showNotificationsModal(
-                  context,
-                  notifications: notifications,
-                  onNotificationTap: (notification) {},
-                  onMarkAsRead: (notification) {},
-                  onMarkAllAsRead: () {},
-                  onDelete: (notification) {},
-                );
+                showNotificationsModal(context);
               },
               icon: Stack(
                 children: [
@@ -202,24 +158,11 @@ class CustomHeader extends StatelessWidget {
     );
   }
 
-  void showNotificationsModal(
-    BuildContext context, {
-    required List<NotificationItem> notifications,
-    Function(NotificationItem)? onNotificationTap,
-    Function(NotificationItem)? onMarkAsRead,
-    Function()? onMarkAllAsRead,
-    Function(NotificationItem)? onDelete,
-  }) {
+  void showNotificationsModal(BuildContext context) {
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
-      builder: (context) => NotificationsModal(
-        notifications: notifications,
-        onNotificationTap: onNotificationTap,
-        onMarkAsRead: onMarkAsRead,
-        onMarkAllAsRead: onMarkAllAsRead,
-        onDelete: onDelete,
-      ),
+      builder: (context) => NotificationsModal(),
     );
   }
 }

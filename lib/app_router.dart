@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:layout_tests/core/layout/app_shell.dart';
+import 'package:layout_tests/features/auth/pages/login_page.dart';
 import 'package:layout_tests/features/inspections/pages/inspection_template_form_screen.dart';
 import 'package:layout_tests/features/user/presentation/user_form_screen.dart';
 import 'package:layout_tests/pages/dashboard_page.dart';
-import 'package:layout_tests/pages/login_page.dart';
 import 'package:layout_tests/pages/not_found_page.dart';
 import 'package:layout_tests/features/inspections/pages/inspection_templates_content.dart';
 import 'package:layout_tests/pages/reports_page.dart';
@@ -13,16 +13,16 @@ import 'package:layout_tests/features/user/presentation/users_content.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/login',
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => LoginPage()),
+      GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
       ShellRoute(
         builder: (context, state, child) {
           return AppShell(child: child);
         },
         routes: [
           GoRoute(
-            path: '/dashboard',
+            path: '/home',
             pageBuilder: (context, state) {
               return NoTransitionPage(child: DashboardContent());
             },

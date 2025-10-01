@@ -54,4 +54,17 @@ class InspectionTemplate {
       createdBy: createdBy ?? this.createdBy,
     );
   }
+
+  factory InspectionTemplate.fromJson(Map<String, dynamic> json) {
+    return InspectionTemplate(
+      id: json['id'] ?? '',
+      name: '',
+      description: '',
+      sector: '',
+      allowedUserIds: [],
+      steps: [],
+      createdAt: DateTime.now(),
+      createdBy: '',
+    );
+  }
 }

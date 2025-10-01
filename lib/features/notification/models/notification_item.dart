@@ -36,6 +36,32 @@ class NotificationItem {
       actionUrl: actionUrl ?? this.actionUrl,
     );
   }
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    return NotificationItem(
+      id: json['id'] ?? '',
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      type: _parseType(json['type']),
+      timestamp: DateTime.parse(
+        json['timestamp'] ?? DateTime.now().toIso8601String(),
+      ),
+      isRead: json['isRead'] ?? false,
+    );
+  }
+
+  static NotificationType _parseType(String? type) {
+    switch (type?.toLowerCase()) {
+      case 'success':
+        return NotificationType.success;
+      case 'warning':
+        return NotificationType.warning;
+      case 'error':
+        return NotificationType.error;
+      default:
+        return NotificationType.info;
+    }
+  }
 }
 
 enum NotificationType { info, success, warning, error }

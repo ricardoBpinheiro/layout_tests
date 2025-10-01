@@ -1,27 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:layout_tests/features/notification/bloc/notification_bloc.dart';
+import 'package:layout_tests/features/notification/data/notification_repository.dart';
 import 'package:layout_tests/features/notification/models/notification_item.dart';
 
-class NotificationsModal extends StatefulWidget {
-  final List<NotificationItem> notifications;
-  final Function(NotificationItem)? onNotificationTap;
-  final Function(NotificationItem)? onMarkAsRead;
-  final Function()? onMarkAllAsRead;
-  final Function(NotificationItem)? onDelete;
-
-  const NotificationsModal({
-    super.key,
-    required this.notifications,
-    this.onNotificationTap,
-    this.onMarkAsRead,
-    this.onMarkAllAsRead,
-    this.onDelete,
-  });
+class NotificationsModal extends StatelessWidget {
+  const NotificationsModal({super.key});
 
   @override
-  State<NotificationsModal> createState() => _NotificationsModalState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) =>
+          NotificationBloc(repository: NotificationRepository())
+            ..add(NotificationFetchRequested()),
+      child: const NotificationsModalView(),
+    );
+  }
 }
 
-class _NotificationsModalState extends State<NotificationsModal>
+class NotificationsModalView extends StatefulWidget {
+  const NotificationsModalView({super.key});
+
+  @override
+  State<NotificationsModalView> createState() => _NotificationsModalViewState();
+}
+
+class _NotificationsModalViewState extends State<NotificationsModalView>
     with TickerProviderStateMixin {
   late AnimationController _slideController;
   late AnimationController _fadeController;
@@ -50,7 +54,6 @@ class _NotificationsModalState extends State<NotificationsModal>
       end: 1.0,
     ).animate(_fadeController);
 
-    // Inicia as animações
     _fadeController.forward();
     _slideController.forward();
   }
@@ -71,185 +74,70 @@ class _NotificationsModalState extends State<NotificationsModal>
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = widget.notifications.where((n) => !n.isRead).length;
-
-    return GestureDetector(
-      onTap: _closeModal,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Container(
-            color: Colors.black.withValues(alpha: 0.3),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 60, left: 16, right: 16),
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: GestureDetector(
-                      onTap: () {}, // Impede que o tap no modal o feche
-                      child: Container(
-                        width: 380,
-                        constraints: const BoxConstraints(maxHeight: 500),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Header
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                    width: 1,
-                                  ),
-                                ),
+    return BlocListener<NotificationBloc, NotificationState>(
+      listener: (context, state) {
+        if (state.status == NotificationStatus.failure) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                state.errorMessage ?? 'Erro ao carregar notificações',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+      child: GestureDetector(
+        onTap: _closeModal,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.3),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 60, left: 16, right: 16),
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: GestureDetector(
+                        onTap: () {},
+                        child: Container(
+                          width: 380,
+                          constraints: const BoxConstraints(maxHeight: 500),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
                               ),
-                              child: Row(
-                                children: [
-                                  const Icon(
-                                    Icons.notifications_outlined,
-                                    color: Color(0xFF2C3E50),
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'Notificações',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF2C3E50),
-                                    ),
-                                  ),
-                                  if (unreadCount > 0) ...[
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        unreadCount.toString(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  const Spacer(),
-                                  if (unreadCount > 0)
-                                    TextButton(
-                                      onPressed: widget.onMarkAllAsRead,
-                                      style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        minimumSize: Size.zero,
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                      child: const Text(
-                                        'Marcar todas como lidas',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF2563EB),
-                                        ),
-                                      ),
-                                    ),
-                                  IconButton(
-                                    onPressed: _closeModal,
-                                    icon: const Icon(Icons.close, size: 20),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            ],
+                          ),
+                          child:
+                              BlocBuilder<NotificationBloc, NotificationState>(
+                                builder: (context, state) {
+                                  return Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Header
+                                      _buildHeader(context, state),
 
-                            // Lista de notificações
-                            Flexible(
-                              child: widget.notifications.isEmpty
-                                  ? Container(
-                                      height: 200,
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.notifications_none,
-                                            size: 48,
-                                            color: Colors.grey[400],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            'Nenhuma notificação',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          Text(
-                                            'Você está em dia! 🎉',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[500],
-                                            ),
-                                          ),
-                                        ],
+                                      // Lista de notificações
+                                      Flexible(
+                                        child: _buildNotificationList(
+                                          context,
+                                          state,
+                                        ),
                                       ),
-                                    )
-                                  : ListView.separated(
-                                      shrinkWrap: true,
-                                      padding: EdgeInsets.zero,
-                                      itemCount: widget.notifications.length,
-                                      separatorBuilder: (context, index) =>
-                                          const Divider(height: 1),
-                                      itemBuilder: (context, index) {
-                                        final notification =
-                                            widget.notifications[index];
-                                        return _NotificationTile(
-                                          notification: notification,
-                                          onTap: () {
-                                            widget.onNotificationTap?.call(
-                                              notification,
-                                            );
-                                            if (!notification.isRead) {
-                                              widget.onMarkAsRead?.call(
-                                                notification,
-                                              );
-                                            }
-                                          },
-                                          onMarkAsRead: () => widget
-                                              .onMarkAsRead
-                                              ?.call(notification),
-                                          onDelete: () => widget.onDelete?.call(
-                                            notification,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                            ),
-                          ],
+                                    ],
+                                  );
+                                },
+                              ),
                         ),
                       ),
                     ),
@@ -262,8 +150,141 @@ class _NotificationsModalState extends State<NotificationsModal>
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context, NotificationState state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.notifications_outlined,
+            color: Color(0xFF2C3E50),
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Notificações',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2C3E50),
+            ),
+          ),
+          if (state.unreadCount > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                state.unreadCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          if (state.unreadCount > 0)
+            TextButton(
+              onPressed: () {
+                context.read<NotificationBloc>().add(
+                  NotificationMarkAllAsRead(),
+                );
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Marcar todas como lidas',
+                style: TextStyle(fontSize: 12, color: Color(0xFF2563EB)),
+              ),
+            ),
+          IconButton(
+            onPressed: _closeModal,
+            icon: const Icon(Icons.close, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationList(BuildContext context, NotificationState state) {
+    if (state.status == NotificationStatus.loading) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (state.notifications.isEmpty) {
+      return SizedBox(
+        height: 200,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 12),
+            Text(
+              'Nenhuma notificação',
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            ),
+            Text(
+              'Você está em dia! 🎉',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      itemCount: state.notifications.length,
+      separatorBuilder: (context, index) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final notification = state.notifications[index];
+        return _NotificationTile(
+          notification: notification,
+          onTap: () {
+            context.read<NotificationBloc>().add(
+              NotificationTapped(notification),
+            );
+            if (!notification.isRead) {
+              context.read<NotificationBloc>().add(
+                NotificationMarkAsRead(notification.id),
+              );
+            }
+          },
+          onMarkAsRead: () {
+            context.read<NotificationBloc>().add(
+              NotificationMarkAsRead(notification.id),
+            );
+          },
+          onDelete: () {
+            context.read<NotificationBloc>().add(
+              NotificationDeleted(notification.id),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
+// _NotificationTile permanece igual ao código original
 class _NotificationTile extends StatelessWidget {
   final NotificationItem notification;
   final VoidCallback? onTap;
@@ -286,7 +307,6 @@ class _NotificationTile extends StatelessWidget {
       case NotificationType.error:
         return Icons.error_outline;
       case NotificationType.info:
-      default:
         return Icons.info_outline;
     }
   }
@@ -300,7 +320,6 @@ class _NotificationTile extends StatelessWidget {
       case NotificationType.error:
         return Colors.red;
       case NotificationType.info:
-      default:
         return const Color(0xFF2563EB);
     }
   }
