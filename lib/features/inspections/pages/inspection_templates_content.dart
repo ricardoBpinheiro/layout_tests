@@ -1,3 +1,4 @@
+import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:layout_tests/features/inspections/models/inspection_template.dart';
@@ -11,8 +12,11 @@ class InspectionTemplatesContent extends StatefulWidget {
       _InspectionTemplatesContentState();
 }
 
+enum ViewMode { grid, table }
+
 class _InspectionTemplatesContentState
     extends State<InspectionTemplatesContent> {
+  ViewMode _viewMode = ViewMode.grid;
   List<InspectionTemplate> templates = [
     InspectionTemplate(
       id: '1',
@@ -155,7 +159,7 @@ class _InspectionTemplatesContentState
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
           // Filtros
           Row(
@@ -181,6 +185,36 @@ class _InspectionTemplatesContentState
                   ),
                 ),
               ),
+              Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
+                ),
+                child: Row(
+                  children: [
+                    _buildViewToggleButton(
+                      icon: Icons.grid_view_rounded,
+                      isSelected: _viewMode == ViewMode.grid,
+                      onTap: () => setState(() => _viewMode = ViewMode.grid),
+                      isFirst: true,
+                    ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: const Color(0xFFD1D5DB),
+                    ),
+                    _buildViewToggleButton(
+                      icon: Icons.table_rows_rounded,
+                      isSelected: _viewMode == ViewMode.table,
+                      onTap: () => setState(() => _viewMode = ViewMode.table),
+                      isLast: true,
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(width: 12),
 
               // Filtro por setor
@@ -255,9 +289,45 @@ class _InspectionTemplatesContentState
                 ? const Center(child: CircularProgressIndicator())
                 : filteredTemplates.isEmpty
                 ? _buildEmptyState()
-                : _buildTemplatesGrid(),
+                : _viewMode == ViewMode.grid
+                ? _buildTemplatesGrid()
+                : _buildTemplatesTable(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildViewToggleButton({
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.horizontal(
+        left: isFirst ? const Radius.circular(7) : Radius.zero,
+        right: isLast ? const Radius.circular(7) : Radius.zero,
+      ),
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF2563EB).withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.horizontal(
+            left: isFirst ? const Radius.circular(7) : Radius.zero,
+            right: isLast ? const Radius.circular(7) : Radius.zero,
+          ),
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF6B7280),
+        ),
       ),
     );
   }
@@ -321,6 +391,267 @@ class _InspectionTemplatesContentState
         ],
       ),
     );
+  }
+
+  Widget _buildTemplatesTable() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: DataTable2(
+        columnSpacing: 12,
+        horizontalMargin: 20,
+        minWidth: 900,
+        headingRowColor: WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+        headingRowHeight: 56,
+        dataRowHeight: 72,
+        columns: const [
+          DataColumn2(
+            label: Text(
+              'Template',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            size: ColumnSize.L,
+          ),
+          DataColumn2(
+            label: Text(
+              'Setor',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+          ),
+          DataColumn2(
+            label: Text(
+              'Status',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+          ),
+          DataColumn2(
+            label: Text(
+              'Criado em',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+          ),
+          DataColumn2(
+            label: Text(
+              'Versão',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            size: ColumnSize.S,
+          ),
+          DataColumn2(
+            label: Text(
+              'Ações',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+            ),
+            size: ColumnSize.S,
+          ),
+        ],
+        rows: filteredTemplates.map((template) {
+          return DataRow2(
+            onTap: () => context.go('/templates/${template.id}'),
+            cells: [
+              DataCell(
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: template.getSectorColor().withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        template.getSectorIcon(),
+                        color: template.getSectorColor(),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            template.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF111827),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            template.description,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              DataCell(
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: template.getSectorColor().withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    template.sector,
+                    style: TextStyle(
+                      color: template.getSectorColor(),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              DataCell(
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: template.status == 'Ativo'
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    template.status,
+                    style: TextStyle(
+                      color: template.status == 'Ativo'
+                          ? Colors.green[700]
+                          : Colors.red[700],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+              DataCell(
+                Text(
+                  _formatDate(template.createdAt),
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              DataCell(
+                Text(
+                  'v${template.version}',
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              DataCell(
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.more_vert,
+                    color: Color(0xFF6B7280),
+                    size: 20,
+                  ),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'duplicate',
+                      child: Row(
+                        children: [
+                          Icon(Icons.content_copy, size: 16),
+                          SizedBox(width: 8),
+                          Text('Duplicar'),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'toggle_status',
+                      child: Row(
+                        children: [
+                          Icon(
+                            template.status == 'Ativo'
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            template.status == 'Ativo' ? 'Desativar' : 'Ativar',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 16, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Excluir', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'duplicate':
+                        _duplicateTemplate(template);
+                        break;
+                      case 'delete':
+                        _deleteTemplate(template);
+                        break;
+                    }
+                  },
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   Widget _buildTemplatesGrid() {

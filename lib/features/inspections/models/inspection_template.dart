@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import 'package:flutter/material.dart';
 import 'package:layout_tests/features/inspections/models/inspection_step.dart';
 
 class InspectionTemplate {
@@ -66,5 +69,31 @@ class InspectionTemplate {
       createdAt: DateTime.now(),
       createdBy: '',
     );
+  }
+
+  Color getSectorColor() {
+    switch (sector) {
+      case 'Qualidade':
+        return Colors.blue;
+      case 'Engenharia':
+        return Colors.orange;
+      case 'Almoxarifado':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData getSectorIcon() {
+    switch (sector) {
+      case 'Qualidade':
+        return Icons.verified;
+      case 'Engenharia':
+        return Icons.engineering;
+      case 'Almoxarifado':
+        return Icons.inventory;
+      default:
+        return Icons.assignment;
+    }
   }
 }

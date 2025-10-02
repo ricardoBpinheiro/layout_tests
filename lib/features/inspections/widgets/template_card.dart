@@ -17,32 +17,6 @@ class TemplateCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  Color _getSectorColor() {
-    switch (template.sector) {
-      case 'Qualidade':
-        return Colors.blue;
-      case 'Engenharia':
-        return Colors.orange;
-      case 'Almoxarifado':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  IconData _getSectorIcon() {
-    switch (template.sector) {
-      case 'Qualidade':
-        return Icons.verified;
-      case 'Engenharia':
-        return Icons.engineering;
-      case 'Almoxarifado':
-        return Icons.inventory;
-      default:
-        return Icons.assignment;
-    }
-  }
-
   String _formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
@@ -72,18 +46,17 @@ class TemplateCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header com ícone e menu
                 Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _getSectorColor().withValues(alpha: 0.1),
+                        color: template.getSectorColor().withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(
-                        _getSectorIcon(),
-                        color: _getSectorColor(),
+                        template.getSectorIcon(),
+                        color: template.getSectorColor(),
                         size: 24,
                       ),
                     ),
@@ -153,10 +126,7 @@ class TemplateCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 16),
-
-                // Título
                 Text(
                   template.name,
                   style: const TextStyle(
@@ -167,43 +137,35 @@ class TemplateCard extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 const SizedBox(height: 8),
-
-                // Descrição
                 Text(
                   template.description,
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 const Spacer(),
-
-                // Footer
                 Row(
                   children: [
-                    // Badge do setor
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getSectorColor().withValues(alpha: 0.1),
+                        color: template.getSectorColor().withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         template.sector,
                         style: TextStyle(
-                          color: _getSectorColor(),
+                          color: template.getSectorColor(),
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
                     const Spacer(),
-                    // Status
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
@@ -228,10 +190,7 @@ class TemplateCard extends StatelessWidget {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 8),
-
-                // Informações extras
                 Row(
                   children: [
                     Icon(
