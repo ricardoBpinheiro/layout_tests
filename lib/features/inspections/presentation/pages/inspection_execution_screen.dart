@@ -54,30 +54,52 @@ class InspectionExecutionScreen extends StatelessWidget {
                     itemCount: template.steps.length,
                     itemBuilder: (_, index) {
                       final step = template.steps[index];
-                      return ListView(
+                      return SingleChildScrollView(
                         padding: const EdgeInsets.all(16),
-                        children: [
-                          Text(
-                            step.name,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const SizedBox(height: 12),
-                          for (final field in step.fields)
-                            FieldWidget(
-                              field: field,
-                              value: state.answers[field.id],
-                              onChanged: (val) {
-                                context.read<InspectionExecutionBloc>().add(
-                                  AnswerField(field, val),
-                                );
-                              },
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 600),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Título da Etapa
+                                Card(
+                                  elevation: 2,
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Text(
+                                      step.name,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+
+                                // Campos da etapa
+                                for (final field in step.fields) ...[
+                                  FieldWidget(
+                                    field: field,
+                                    value: state.answers[field.id],
+                                    onChanged: (val) {
+                                      context
+                                          .read<InspectionExecutionBloc>()
+                                          .add(AnswerField(field, val));
+                                    },
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                              ],
                             ),
-                        ],
+                          ),
+                        ),
                       );
                     },
                   ),
                 ),
-
+                
                 // Botões de navegação
                 Padding(
                   padding: const EdgeInsets.all(16),
