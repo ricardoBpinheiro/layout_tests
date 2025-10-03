@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:layout_tests/app_injection.dart';
 import 'package:layout_tests/app_router.dart';
+import 'package:layout_tests/features/inspections/bloc/inspection_bloc.dart';
+import 'package:layout_tests/features/inspections/bloc/template_bloc.dart';
+import 'package:layout_tests/features/inspections/data/inspection_repository.dart';
+import 'package:layout_tests/features/inspections/data/template_repository.dart';
 import 'package:layout_tests/features/sidebar/bloc/side_bar_bloc.dart';
 import 'package:layout_tests/features/user/bloc/user_bloc.dart';
 
@@ -13,6 +18,14 @@ class AppWidget extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => SidebarBloc()),
         BlocProvider(create: (context) => UserBloc()..add(LoadUserData())),
+        BlocProvider<InspectionBloc>(
+          create: (context) =>
+              InspectionBloc(repository: getIt<InspectionRepository>()),
+        ),
+        BlocProvider<TemplateBloc>(
+          create: (context) =>
+              TemplateBloc(repository: getIt<TemplateRepository>()),
+        ),
       ],
       child: MaterialApp.router(
         title: 'Flutter Admin Dashboard',

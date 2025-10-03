@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:layout_tests/features/inspections/models/field_option.dart';
-import 'package:layout_tests/features/inspections/models/field_types.dart';
-import 'package:layout_tests/features/inspections/models/inspection_field.dart';
-import 'package:layout_tests/features/inspections/models/inspection_section.dart';
-import 'package:layout_tests/features/inspections/models/inspection_step.dart';
-import 'package:layout_tests/features/inspections/widgets/field_display_widget.dart';
+import 'package:layout_tests/features/template_inspections/models/field_option.dart';
+import 'package:layout_tests/features/template_inspections/models/field_types.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_section.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_step.dart';
+import 'package:layout_tests/features/template_inspections/widgets/field_display_widget.dart';
 
 class StepBuilder extends StatefulWidget {
   final InspectionStep step;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:layout_tests/features/inspections/models/field_types.dart';
+import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 
 class FieldTypeSelectorModal extends StatelessWidget {
   final void Function(FieldType, {String? predefinedSet}) onFieldTypeSelected;

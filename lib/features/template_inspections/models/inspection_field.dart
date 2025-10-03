@@ -1,6 +1,6 @@
-import 'package:layout_tests/features/inspections/models/field_option.dart';
-import 'package:layout_tests/features/inspections/models/field_types.dart';
-import 'package:layout_tests/features/inspections/models/question_rule.dart';
+import 'package:layout_tests/features/template_inspections/models/field_option.dart';
+import 'package:layout_tests/features/template_inspections/models/field_types.dart';
+import 'package:layout_tests/features/template_inspections/models/question_rule.dart';
 
 class InspectionField {
   final String id;

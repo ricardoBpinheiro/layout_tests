@@ -1,8 +1,8 @@
 import 'package:data_table_2/data_table_2.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:layout_tests/features/inspections/models/inspection_template.dart';
-import 'package:layout_tests/features/inspections/widgets/template_card.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
+import 'package:layout_tests/features/template_inspections/widgets/template_card.dart';
 
 class InspectionTemplatesContent extends StatefulWidget {
   const InspectionTemplatesContent({super.key});

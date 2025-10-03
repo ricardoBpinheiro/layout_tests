@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:layout_tests/features/inspections/models/field_types.dart';
-import 'package:layout_tests/features/inspections/models/inspection_field.dart';
-import 'package:layout_tests/features/inspections/models/inspection_step.dart';
-import 'package:layout_tests/features/inspections/widgets/field_type_selector_modal.dart';
-import 'package:layout_tests/features/inspections/widgets/step_builder.dart';
+import 'package:layout_tests/features/template_inspections/models/field_types.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_step.dart';
+import 'package:layout_tests/features/template_inspections/widgets/field_type_selector_modal.dart';
+import 'package:layout_tests/features/template_inspections/widgets/step_builder.dart';
 import 'package:layout_tests/features/user/models/user_model.dart';
 
 class InspectionTemplateFormScreen extends StatefulWidget {

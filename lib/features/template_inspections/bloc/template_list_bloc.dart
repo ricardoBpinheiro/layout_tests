@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:layout_tests/features/inspections/data/inspection_template_repository.dart';
-import 'package:layout_tests/features/inspections/models/inspection_template.dart';
+import 'package:layout_tests/features/template_inspections/data/inspection_template_repository.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
 import 'package:meta/meta.dart';
 
 part 'template_list_event.dart';

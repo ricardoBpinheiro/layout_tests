@@ -23,6 +23,7 @@ class CustomSidebar extends StatelessWidget {
       {'icon': Icons.dashboard, 'title': 'Dashboard', 'route': '/dashboard'},
       {'icon': Icons.people, 'title': 'Usuários', 'route': '/users'},
       {'icon': Icons.inventory, 'title': 'Templates', 'route': '/templates'},
+      {'icon': Icons.dashboard_customize_sharp, 'title': 'Inspeções', 'route': '/inspections'},
       {'icon': Icons.analytics, 'title': 'Relatórios', 'route': '/reports'},
       {'icon': Icons.settings, 'title': 'Configurações', 'route': '/settings'},
     ];

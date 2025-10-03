@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:layout_tests/features/inspections/models/inspection_template.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
 
 class TemplateCard extends StatelessWidget {
   final InspectionTemplate template;

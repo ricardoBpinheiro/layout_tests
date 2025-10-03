@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:layout_tests/features/inspections/models/field_types.dart';
-import 'package:layout_tests/features/inspections/models/inspection_field.dart';
+import 'package:layout_tests/features/template_inspections/models/field_types.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
 
 class FieldBuilder extends StatefulWidget {
   final InspectionField field;
