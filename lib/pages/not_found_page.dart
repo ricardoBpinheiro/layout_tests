@@ -25,9 +25,9 @@ class NotFoundPage extends StatelessWidget {
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                context.go('/dashboard');
+                context.go('/home');
               },
-              child: Text('Voltar ao Dashboard'),
+              child: Text('Voltar ao Menu'),
             ),
           ],
         ),

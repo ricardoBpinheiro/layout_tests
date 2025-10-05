@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:layout_tests/core/widgets/user_selection/data/repositories/user_repository_impl.dart';
+import 'package:layout_tests/core/widgets/user_selection/domain/repositories/user_repository.dart';
 import 'package:layout_tests/features/inspections/data/inspection_repository.dart';
 import 'package:layout_tests/features/inspections/data/inspection_repository_impl.dart';
 import 'package:layout_tests/features/inspections/data/template_repository.dart';
@@ -15,4 +17,5 @@ void setup() {
   getIt.registerSingleton<TemplateRepository>(
     TemplateRepositoryImpl(dio: Dio(), baseUrl: ''),
   );
+  getIt.registerSingleton<UserRepository>(UserRepositoryImpl(Dio()));
 }

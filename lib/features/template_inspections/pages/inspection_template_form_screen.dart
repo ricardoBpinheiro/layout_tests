@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:layout_tests/app_injection.dart';
+import 'package:layout_tests/core/widgets/user_selection/bloc/user_selection_bloc.dart';
+import 'package:layout_tests/core/widgets/user_selection/domain/repositories/user_repository.dart';
+import 'package:layout_tests/core/widgets/user_selection/presentation/selected_users_field.dart';
+import 'package:layout_tests/core/widgets/user_selection/presentation/user_selection_modal.dart';
 import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_step.dart';
@@ -27,7 +33,6 @@ class _InspectionTemplateFormScreenState
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _selectedSector = 'Qualidade';
-  List<String> _selectedUsers = [];
 
   // Dados da Aba 2 - Criação
   List<InspectionStep> _steps = [];
@@ -36,51 +41,13 @@ class _InspectionTemplateFormScreenState
   bool _isLoading = false;
   bool get _isEditing => widget.templateId != null;
 
-  // Lista mockada de usuários para o multiselect
-  final List<User> _availableUsers = [
-    User(
-      id: '1',
-      name: 'João Silva',
-      email: 'joao@example.com',
-      phone: '',
-      role: '',
-      createdAt: DateTime.now(),
-    ),
-    User(
-      id: '2',
-      name: 'Maria Santos',
-      email: 'maria@example.com',
-      phone: '',
-      role: '',
-      createdAt: DateTime.now(),
-    ),
-    User(
-      id: '3',
-      name: 'Pedro Costa',
-      email: 'pedro@example.com',
-      phone: '',
-      role: '',
-      createdAt: DateTime.now(),
-    ),
-    User(
-      id: '4',
-      name: 'Ana Oliveira',
-      email: 'ana@example.com',
-      phone: '',
-      role: '',
-      createdAt: DateTime.now(),
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
 
     if (_isEditing) {
-      _loadTemplateData();
     } else {
-      // Adicionar uma etapa inicial
       _addNewStep();
     }
   }
@@ -91,17 +58,6 @@ class _InspectionTemplateFormScreenState
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
-  }
-
-  void _loadTemplateData() {
-    // Simular carregamento de dados
-    setState(() {
-      _nameController.text = 'Inspeção de Qualidade - Matéria Prima';
-      _descriptionController.text =
-          'Template para inspeção de matéria prima recebida';
-      _selectedSector = 'Qualidade';
-      _selectedUsers = ['1', '2'];
-    });
   }
 
   void _addNewStep() {
@@ -280,100 +236,109 @@ class _InspectionTemplateFormScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Editar Template' : 'Novo Template'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: const Color(0xFF1F2937),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/templates'),
+    return BlocProvider(
+      create: (context) =>
+          UserSelectionBloc(getIt<UserRepository>())..add(LoadUsers()),
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        appBar: AppBar(
+          title: Text(_isEditing ? 'Editar Template' : 'Novo Template'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          foregroundColor: const Color(0xFF1F2937),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/templates'),
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: const Color(0xFF2563EB),
+            unselectedLabelColor: Colors.grey[600],
+            indicatorColor: const Color(0xFF2563EB),
+            tabs: const [
+              Tab(text: 'Capa'),
+              Tab(text: 'Criação'),
+              Tab(text: 'Revisão'),
+            ],
+          ),
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: const Color(0xFF2563EB),
-          unselectedLabelColor: Colors.grey[600],
-          indicatorColor: const Color(0xFF2563EB),
-          tabs: const [
-            Tab(text: 'Capa'),
-            Tab(text: 'Criação'),
-            Tab(text: 'Revisão'),
+        body: Column(
+          children: [
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildCoverTab(),
+                  _buildCreationTab(),
+                  _buildReviewTab(),
+                ],
+              ),
+            ),
+
+            // Botões de ação fixos
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => context.go('/templates'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Color(0xFFD1D5DB)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF374151),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _saveTemplate,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              _isEditing
+                                  ? 'Salvar Alterações'
+                                  : 'Criar Template',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildCoverTab(),
-                _buildCreationTab(),
-                _buildReviewTab(),
-              ],
-            ),
-          ),
-
-          // Botões de ação fixos
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => context.go('/templates'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Color(0xFFD1D5DB)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancelar',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF374151)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveTemplate,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2563EB),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            _isEditing ? 'Salvar Alterações' : 'Criar Template',
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -528,104 +493,7 @@ class _InspectionTemplateFormScreenState
               const SizedBox(height: 20),
 
               // Usuários com Permissão de Visualização (MultiSelect)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Usuários com Permissão de Visualização',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F4F6),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFD1D5DB)),
-                    ),
-                    child: InkWell(
-                      onTap: () => _showUserSelectionDialog(),
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.people, color: Color(0xFF9CA3AF)),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _selectedUsers.isEmpty
-                                  ? const Text(
-                                      'Selecione os usuários...',
-                                      style: TextStyle(
-                                        color: Color(0xFF9CA3AF),
-                                      ),
-                                    )
-                                  : Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: _selectedUsers.map((userId) {
-                                        final user = _availableUsers.firstWhere(
-                                          (u) => u.id == userId,
-                                        );
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(
-                                              0xFF2563EB,
-                                            ).withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                user.name,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF2563EB),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              GestureDetector(
-                                                onTap: () {
-                                                  setState(() {
-                                                    _selectedUsers.remove(
-                                                      userId,
-                                                    );
-                                                  });
-                                                },
-                                                child: const Icon(
-                                                  Icons.close,
-                                                  size: 12,
-                                                  color: Color(0xFF2563EB),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
-                                    ),
-                            ),
-                            const Icon(
-                              Icons.arrow_drop_down,
-                              color: Color(0xFF9CA3AF),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              SelectedUsersField(),
             ],
           ),
         ),
@@ -760,16 +628,7 @@ class _InspectionTemplateFormScreenState
                 _buildReviewItem('Setor Responsável', _selectedSector),
                 _buildReviewItem(
                   'Usuários com Permissão',
-                  _selectedUsers.isEmpty
-                      ? 'Nenhum usuário selecionado'
-                      : _selectedUsers
-                            .map((id) {
-                              final user = _availableUsers.firstWhere(
-                                (u) => u.id == id,
-                              );
-                              return user.name;
-                            })
-                            .join(', '),
+                  'Nenhum usuário selecionado',
                 ),
               ],
             ),
@@ -982,59 +841,6 @@ class _InspectionTemplateFormScreenState
           ),
         ),
       ],
-    );
-  }
-
-  void _showUserSelectionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Selecionar Usuários'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 300,
-          child: ListView.builder(
-            itemCount: _availableUsers.length,
-            itemBuilder: (context, index) {
-              final user = _availableUsers[index];
-              final isSelected = _selectedUsers.contains(user.id);
-
-              return CheckboxListTile(
-                value: isSelected,
-                onChanged: (selected) {
-                  setState(() {
-                    if (selected == true) {
-                      _selectedUsers.add(user.id);
-                    } else {
-                      _selectedUsers.remove(user.id);
-                    }
-                  });
-                },
-                title: Text(user.name),
-                subtitle: Text(user.email),
-                secondary: CircleAvatar(
-                  backgroundColor: const Color(
-                    0xFF2563EB,
-                  ).withValues(alpha: 0.1),
-                  child: Text(
-                    user.name.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
     );
   }
 }
