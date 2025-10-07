@@ -9,6 +9,7 @@ import 'package:layout_tests/core/widgets/user_selection/presentation/user_selec
 import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_step.dart';
+import 'package:layout_tests/features/template_inspections/models/report_preview_data.dart';
 import 'package:layout_tests/features/template_inspections/widgets/field_type_selector_modal.dart';
 import 'package:layout_tests/features/template_inspections/widgets/step_builder.dart';
 import 'package:layout_tests/features/user/models/user_model.dart';
@@ -32,6 +33,9 @@ class _InspectionTemplateFormScreenState
   // Controladores da Aba 1 - Capa
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _emailToController = TextEditingController();
+  final _subjectController = TextEditingController();
+  final _bodyController = TextEditingController();
   String _selectedSector = 'Qualidade';
 
   // Dados da Aba 2 - Criação
@@ -44,7 +48,7 @@ class _InspectionTemplateFormScreenState
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     if (_isEditing) {
     } else {
@@ -160,8 +164,9 @@ class _InspectionTemplateFormScreenState
       case FieldType.rating:
         return 'Escala de avaliação';
       case FieldType.predefinedSet:
-        // TODO: Handle this case.
-        throw UnimplementedError();
+        return 'Seleção';
+      case FieldType.instruction:
+        return 'Instrução';
     }
   }
 
@@ -259,6 +264,7 @@ class _InspectionTemplateFormScreenState
               Tab(text: 'Capa'),
               Tab(text: 'Criação'),
               Tab(text: 'Revisão'),
+              Tab(text: 'Relatório'),
             ],
           ),
         ),
@@ -271,6 +277,7 @@ class _InspectionTemplateFormScreenState
                   _buildCoverTab(),
                   _buildCreationTab(),
                   _buildReviewTab(),
+                  _buildReportTab(),
                 ],
               ),
             ),
@@ -724,6 +731,127 @@ class _InspectionTemplateFormScreenState
     );
   }
 
+  // Aba 4 - Relatorio
+  Widget _buildReportTab() {
+    final theme = Theme.of(context);
+    final sampleData = ReportPreviewData(
+      tituloTemplate: 'Modelo sem título',
+      tituloInspecao: '06/10/2025 / Nome Usuário',
+      dataInspecao: DateTime.now(),
+      pontuacao: 0.80, // 80%
+    );
+
+    final subjectPreview = _applyVars(_subjectController.text, sampleData);
+    final bodyPreview = _applyVars(_bodyController.text, sampleData);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 1000;
+
+        // Use SingleChildScrollView no eixo principal e evite Expanded dentro dele.
+        final content = Padding(
+          padding: const EdgeInsets.all(16),
+          child: isWide
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Coluna esquerda
+                    Flexible(
+                      flex: 4,
+                      fit: FlexFit.loose,
+                      child: _LeftEmailConfigCard(
+                        subjectPreview: subjectPreview,
+                        bodyPreview: bodyPreview,
+                        isLoading: _isLoading,
+                        saveTemplate: _saveTemplate,
+                        emailToController: _emailToController,
+                        subjectController: _subjectController,
+                        bodyController: _bodyController,
+                        insertVarInSubject: _insertVarInSubject,
+                        insertVarInBody: _insertVarInBody,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Coluna direita
+                    Flexible(
+                      flex: 6,
+                      fit: FlexFit.loose,
+                      child: _RightPreviewCard(
+                        subjectPreview: subjectPreview,
+                        bodyPreview: bodyPreview,
+                        data: sampleData,
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // importante
+                  children: [
+                    _LeftEmailConfigCard(
+                      subjectPreview: subjectPreview,
+                      bodyPreview: bodyPreview,
+                      isLoading: _isLoading,
+                      saveTemplate: _saveTemplate,
+                      emailToController: _emailToController,
+                      subjectController: _subjectController,
+                      bodyController: _bodyController,
+                      insertVarInSubject: _insertVarInSubject,
+                      insertVarInBody: _insertVarInBody,
+                    ),
+                    const SizedBox(height: 16),
+                    _RightPreviewCard(
+                      subjectPreview: subjectPreview,
+                      bodyPreview: bodyPreview,
+                      data: sampleData,
+                    ),
+                  ],
+                ),
+        );
+
+        return SingleChildScrollView(child: content);
+      },
+    );
+  }
+
+  String _applyVars(String input, ReportPreviewData data) {
+    return input
+        .replaceAll('{TituloTemplate}', data.tituloTemplate)
+        .replaceAll('{TituloInspecao}', data.tituloInspecao)
+        .replaceAll('{DataInspecao}', _formatDateTime(data.dataInspecao))
+        .replaceAll(
+          '{Pontuação}',
+          '${(data.pontuacao * 100).toStringAsFixed(0)}%',
+        );
+  }
+
+  void _insertAtCursor(TextEditingController c, String token) {
+    final sel = c.selection;
+    final base = c.text;
+    if (!sel.isValid) {
+      c.text = base + token;
+      c.selection = TextSelection.collapsed(offset: c.text.length);
+      return;
+    }
+    final newText = base.replaceRange(sel.start, sel.end, token);
+    c.text = newText;
+    c.selection = TextSelection.collapsed(offset: sel.start + token.length);
+  }
+
+  void _insertVarInSubject(String token) {
+    setState(() => _insertAtCursor(_subjectController, token));
+  }
+
+  void _insertVarInBody(String token) {
+    setState(() => _insertAtCursor(_bodyController, token));
+  }
+
+  String _formatDateTime(DateTime dt) {
+    // 06/10/2025 21:30
+    final two = (int n) => n.toString().padLeft(2, '0');
+    return '${two(dt.day)}/${two(dt.month)}/${dt.year} ${two(dt.hour)}:${two(dt.minute)}';
+  }
+
   Widget _buildReviewSection({
     required String title,
     required List<Widget> children,
@@ -844,3 +972,613 @@ class _InspectionTemplateFormScreenState
     );
   }
 }
+
+class _VarsMenu extends StatelessWidget {
+  final void Function(String token) onInsert;
+  const _VarsMenu({required this.onInsert});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: 'Inserir variável',
+      onSelected: onInsert,
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: '{TituloTemplate}',
+          child: Text('{TituloTemplate}'),
+        ),
+        PopupMenuItem(
+          value: '{TituloInspecao}',
+          child: Text('{TituloInspecao}'),
+        ),
+        PopupMenuItem(value: '{DataInspecao}', child: Text('{DataInspecao}')),
+        PopupMenuItem(value: '{Pontuação}', child: Text('{Pontuação}')),
+      ],
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.add),
+        label: const Text('Variáveis'),
+        onPressed: null,
+      ),
+    );
+  }
+}
+
+class _VarsLegend extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final styleK = const TextStyle(
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF374151),
+    );
+    final styleV = const TextStyle(color: Color(0xFF6B7280));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Variáveis disponíveis',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          children: const [
+            _KV('{TituloTemplate}', 'Título do modelo, ex: Modelo sem título'),
+            _KV(
+              '{TituloInspecao}',
+              'Título da inspeção, ex: 06/10/2025 / Nome Usuário',
+            ),
+            _KV('{DataInspecao}', 'Data de conclusão, ex: 06/10/2025 21:30'),
+            _KV('{Pontuação}', 'Pontuação total, ex: 80%'),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _KV extends StatelessWidget {
+  final String k;
+  final String v;
+  const _KV(this.k, this.v);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4F6),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(k, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 8),
+          Text('— $v', style: const TextStyle(color: Color(0xFF6B7280))),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmailPreviewCard extends StatelessWidget {
+  final String to;
+  final String subject;
+  final String body;
+  const _EmailPreviewCard({
+    required this.to,
+    required this.subject,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Prévia do e-mail',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 8),
+          _row('Para', to.isEmpty ? '—' : to),
+          _row('Assunto', subject.isEmpty ? '—' : subject),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFAFAFA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Text(body.isEmpty ? '—' : body),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String k, String v) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(k, style: const TextStyle(color: Color(0xFF6B7280))),
+          ),
+          Expanded(child: Text(v)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PdfPreviewCard extends StatelessWidget {
+  final ReportPreviewData data;
+  const _PdfPreviewCard({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    // Apenas um mock visual. Na inspeção você usará seu gerador real de PDF.
+    return AspectRatio(
+      aspectRatio: 210 / 297, // A4
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    height: 40,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0ECFF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.insert_drive_file,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data.tituloTemplate,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          data.tituloInspecao,
+                          style: const TextStyle(color: Color(0xFF6B7280)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'Pontuação ${(data.pontuacao * 100).toStringAsFixed(0)}%',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              // Body placeholders
+              _line('Local onde foi conduzido'),
+              _line('Realizado em'),
+              _line('Preparado por'),
+              _line('Localização'),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              const Text(
+                'Itens sinalizados e ações',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.separated(
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: 3,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => Container(
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAFAFA),
+                      border: Border.all(color: Color(0xFFE5E7EB)),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _line(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(
+              title,
+              style: const TextStyle(color: Color(0xFF6B7280)),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 16,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RightPreviewCard extends StatelessWidget {
+  final String subjectPreview;
+  final String bodyPreview;
+  final ReportPreviewData data;
+
+  const _RightPreviewCard({
+    required this.subjectPreview,
+    required this.bodyPreview,
+    required this.data,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min, // evita conflito em altura "solta"
+        children: [
+          Row(
+            children: [
+              Text(
+                'Pré-visualização do Relatório',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const Spacer(),
+              SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'web', label: Text('Web')),
+                  ButtonSegment(value: 'pdf', label: Text('PDF')),
+                ],
+                selected: const {'pdf'},
+                onSelectionChanged: (_) {},
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _EmailPreviewCard(
+            to: '', // opcional: passe _emailToController.text
+            subject: subjectPreview,
+            body: bodyPreview,
+          ),
+          const SizedBox(height: 16),
+
+          // Em vez de Expanded, defina um AspectRatio ou altura máxima.
+          AspectRatio(
+            aspectRatio: 210 / 297, // A4
+            child: _PdfPreviewSurface(data: data),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PdfPreviewSurface extends StatelessWidget {
+  final ReportPreviewData data;
+  const _PdfPreviewSurface({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // header...
+          Row(
+            children: [
+              Container(
+                height: 40,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0ECFF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.insert_drive_file,
+                  color: Color(0xFF2563EB),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.tituloTemplate,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      data.tituloInspecao,
+                      style: const TextStyle(color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'Pontuação ${(data.pontuacao * 100).toStringAsFixed(0)}%',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+          _line('Local onde foi conduzido'),
+          _line('Realizado em'),
+          _line('Preparado por'),
+          _line('Localização'),
+          const SizedBox(height: 12),
+          const Divider(),
+          const SizedBox(height: 8),
+          const Text(
+            'Itens sinalizados e ações',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+
+          // Lista não-scrollável com altura conhecida
+          // Use Expanded somente se a altura do pai for limitada. Aqui usamos SizedBox + ListView(shrinkWrap).
+          SizedBox(
+            height: 3 * 40, // 3 linhas x 40px
+            child: ListView.separated(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: 3,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) => Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _line(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 160,
+            child: Text(
+              title,
+              style: const TextStyle(color: Color(0xFF6B7280)),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              height: 16,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeftEmailConfigCard extends StatelessWidget {
+  final String subjectPreview;
+  final String bodyPreview;
+  final bool isLoading;
+  final VoidCallback saveTemplate;
+  final TextEditingController emailToController;
+  final TextEditingController subjectController;
+  final TextEditingController bodyController;
+  final void Function(String) insertVarInSubject;
+  final void Function(String) insertVarInBody;
+
+  const _LeftEmailConfigCard({
+    required this.subjectPreview,
+    required this.bodyPreview,
+    required this.isLoading,
+    required this.saveTemplate,
+    required this.emailToController,
+    required this.subjectController,
+    required this.bodyController,
+    required this.insertVarInSubject,
+    required this.insertVarInBody,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Configurações do e-mail',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+          Text('E-mail para', style: _labelStyle()),
+          const SizedBox(height: 8),
+          TextField(
+            controller: emailToController,
+            decoration: _inputDecoration('ex: pessoa@empresa.com'),
+          ),
+          const SizedBox(height: 16),
+          Text('Assunto', style: _labelStyle()),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: subjectController,
+                  onChanged: (_) => (context as Element).markNeedsBuild(),
+                  decoration: _inputDecoration('Assunto do e-mail'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _VarsMenu(onInsert: insertVarInSubject),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text('Corpo', style: _labelStyle()),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: bodyController,
+                  onChanged: (_) => (context as Element).markNeedsBuild(),
+                  maxLines: 10,
+                  decoration: _inputDecoration(
+                    'Escreva o corpo do e-mail...\nUse as variáveis.',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _VarsMenu(onInsert: insertVarInBody),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _VarsLegend(),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : saveTemplate,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Salvar'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+TextStyle _labelStyle() => const TextStyle(
+  fontSize: 12,
+  color: Color(0xFF6B7280),
+  fontWeight: FontWeight.w600,
+);
+
+InputDecoration _inputDecoration(String hint) => InputDecoration(
+  hintText: hint,
+  filled: true,
+  fillColor: const Color(0xFFFAFAFA),
+  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+  border: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+  ),
+  enabledBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+  ),
+  focusedBorder: OutlineInputBorder(
+    borderRadius: BorderRadius.circular(10),
+    borderSide: const BorderSide(color: Color(0xFF2563EB)),
+  ),
+);

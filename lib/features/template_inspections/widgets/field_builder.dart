@@ -561,8 +561,8 @@ class _FieldBuilderState extends State<FieldBuilder> {
             ),
           ],
         );
+      case FieldType.instruction:
       case FieldType.predefinedSet:
-        // TODO: Handle this case.
         throw UnimplementedError();
     }
   }

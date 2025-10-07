@@ -54,52 +54,85 @@ class InspectionExecutionScreen extends StatelessWidget {
                     itemCount: template.steps.length,
                     itemBuilder: (_, index) {
                       final step = template.steps[index];
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.all(16),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 600),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // Título da Etapa
-                                Card(
-                                  elevation: 2,
-                                  margin: const EdgeInsets.only(bottom: 16),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16),
+                      return CustomScrollView(
+                        slivers: [
+                          // Cabeçalho fixo
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _StepHeaderDelegate(
+                              minExtent: 64,
+                              maxExtent: 92,
+                              child: Material(
+                                color: Theme.of(
+                                  context,
+                                ).scaffoldBackgroundColor,
+                                elevation: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
                                     child: Text(
                                       step.name,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-
-                                // Campos da etapa
-                                for (final field in step.fields) ...[
-                                  FieldWidget(
-                                    field: field,
-                                    value: state.answers[field.id],
-                                    onChanged: (val) {
-                                      context
-                                          .read<InspectionExecutionBloc>()
-                                          .add(AnswerField(field, val));
-                                    },
-                                  ),
-                                  const SizedBox(height: 16),
-                                ],
-                              ],
+                              ),
                             ),
                           ),
-                        ),
+
+                          // Conteúdo da etapa
+                          SliverToBoxAdapter(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 600,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      const SizedBox(height: 12),
+                                      for (final field in step.fields) ...[
+                                        FieldWidget(
+                                          field: field,
+                                          value: state.answers[field.id],
+                                          onChanged: (val) {
+                                            context
+                                                .read<InspectionExecutionBloc>()
+                                                .add(AnswerField(field, val));
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
                 ),
-                
+
                 // Botões de navegação
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -136,5 +169,33 @@ class InspectionExecutionScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _StepHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double minExtent;
+  final double maxExtent;
+  final Widget child;
+
+  _StepHeaderDelegate({
+    required this.minExtent,
+    required this.maxExtent,
+    required this.child,
+  });
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox.expand(child: child);
+  }
+
+  @override
+  bool shouldRebuild(covariant _StepHeaderDelegate oldDelegate) {
+    return oldDelegate.maxExtent != maxExtent ||
+        oldDelegate.minExtent != minExtent ||
+        oldDelegate.child != child;
   }
 }

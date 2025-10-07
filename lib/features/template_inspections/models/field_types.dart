@@ -14,6 +14,7 @@ enum FieldType {
   time,
   rating,
   predefinedSet,
+  instruction,
 }
 
 String getFieldTypeDisplayName(FieldType type) {
@@ -42,6 +43,8 @@ String getFieldTypeDisplayName(FieldType type) {
       return 'Horário';
     case FieldType.rating:
       return 'Avaliação';
+    case FieldType.instruction:
+      return 'Instrução';
     case FieldType.predefinedSet:
       return 'Multi Seleção';
   }
@@ -75,5 +78,7 @@ IconData getFieldTypeIcon(FieldType type) {
       return Icons.star;
     case FieldType.predefinedSet:
       return Icons.star;
+    case FieldType.instruction:
+      return Icons.tungsten_outlined;
   }
 }

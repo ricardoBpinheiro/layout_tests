@@ -71,6 +71,8 @@ class _FieldDisplayWidgetState extends State<FieldDisplayWidget> {
         return 'Avaliação';
       case FieldType.predefinedSet:
         return 'Pré-definido';
+      case FieldType.instruction:
+        return 'Instrução';
     }
   }
 
@@ -101,6 +103,8 @@ class _FieldDisplayWidgetState extends State<FieldDisplayWidget> {
       case FieldType.rating:
         return Icons.star;
       case FieldType.predefinedSet:
+        return Icons.list;
+      case FieldType.instruction:
         return Icons.list;
     }
   }
