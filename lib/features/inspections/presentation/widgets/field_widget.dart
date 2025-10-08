@@ -4,18 +4,23 @@ import 'dart:ui';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_bloc.dart';
+import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_event.dart';
 import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
 
 class FieldWidget extends StatelessWidget {
   final InspectionField field;
   final dynamic value;
+  final String? note;
   final Function(dynamic) onChanged;
 
   const FieldWidget({
     super.key,
     required this.field,
     this.value,
+    this.note,
     required this.onChanged,
   });
 
@@ -33,21 +38,105 @@ class FieldWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildField(context),
-            const SizedBox(height: 12),
-            const Divider(),
-            _buildActionButtons(context),
-          ],
+    final hasNote = (note != null && note!.trim().isNotEmpty);
+
+    return Stack(
+      children: [
+        Card(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color:
+                  field.required == true &&
+                      (value == null || (value is String && value.isEmpty))
+                  ? const Color(
+                      0xFFDC2626,
+                    ) // vermelho na borda se quiser indicar obrigatório
+                  : const Color(0xFFE5E7EB),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildField(context),
+
+                // Prévia da anotação exatamente abaixo do campo
+                if (hasNote) ...[
+                  const SizedBox(height: 16),
+                  _NotePreview(note: note!),
+                ],
+
+                const SizedBox(height: 12),
+                const Divider(),
+
+                // Ações
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _addAnnotation(context),
+                      icon: const Icon(
+                        Icons.note_add,
+                        color: Colors.deepPurple,
+                      ),
+                      label: Text(
+                        hasNote ? "Editar anotação" : "Adicionar anotação",
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.deepPurple,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        // TODO: implementar ação de anexar mídia
+                      },
+                      icon: const Icon(
+                        Icons.attach_file,
+                        color: Colors.deepPurple,
+                      ),
+                      label: const Text("Anexar mídia"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.deepPurple,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _createAction(context),
+                      icon: const Icon(
+                        Icons.playlist_add_check,
+                        color: Colors.deepPurple,
+                      ),
+                      label: const Text("Criar ação"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.deepPurple,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        if (field.required == true &&
+            (value == null || (value is String && value.isEmpty)))
+          Positioned.fill(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -260,30 +349,52 @@ class FieldWidget extends StatelessWidget {
 
   /// Ação para adicionar anotação
   void _addAnnotation(BuildContext context) {
-    final controller = TextEditingController();
+    final controller = TextEditingController(text: note ?? '');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Adicionar anotação"),
+        title: Text(
+          (note?.isNotEmpty ?? false)
+              ? "Editar anotação"
+              : "Adicionar anotação",
+        ),
         content: TextField(
           controller: controller,
           decoration: const InputDecoration(hintText: "Digite sua anotação..."),
           maxLines: 3,
         ),
         actions: [
+          if ((note?.isNotEmpty ?? false))
+            TextButton(
+              onPressed: () {
+                context.read<InspectionExecutionBloc>().add(
+                  SaveFieldNote(field.id, ''),
+                );
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Anotação removida")),
+                );
+              },
+              child: const Text("Remover"),
+            ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text("Cancelar"),
           ),
           ElevatedButton(
             onPressed: () {
-              final note = controller.text.trim();
-              if (note.isNotEmpty) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("Anotação adicionada: $note")),
-                );
-              }
+              final text = controller.text.trim();
+              context.read<InspectionExecutionBloc>().add(
+                SaveFieldNote(field.id, text),
+              );
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    text.isEmpty ? "Anotação removida" : "Anotação salva",
+                  ),
+                ),
+              );
             },
             child: const Text("Salvar"),
           ),
@@ -786,6 +897,33 @@ class _InstructionField extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    );
+  }
+}
+
+class _NotePreview extends StatelessWidget {
+  final String note;
+  const _NotePreview({required this.note});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(top: 2),
+          child: Icon(Icons.sticky_note_2, color: Colors.deepPurple, size: 18),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            note,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF374151)),
+          ),
+        ),
       ],
     );
   }

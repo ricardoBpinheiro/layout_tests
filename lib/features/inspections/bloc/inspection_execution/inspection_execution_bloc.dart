@@ -19,9 +19,22 @@ class InspectionExecutionBloc
     on<NextStep>(_onNextStep);
     on<PreviousStep>(_onPreviousStep);
     on<SubmitInspection>(_onSubmitInspection);
-
+    on<SaveFieldNote>(_onSaveFieldNote);
     // inicia automaticamente
     add(StartExecution());
+  }
+
+  void _onSaveFieldNote(SaveFieldNote event, Emitter emit) {
+    final current = state as ExecutionInProgress;
+    final newNotes = Map<String, String>.from(current.notesByField);
+
+    if (event.note.trim().isEmpty) {
+      newNotes.remove(event.fieldId);
+    } else {
+      newNotes[event.fieldId] = event.note.trim();
+    }
+
+    emit(current.copyWith(notesByField: newNotes));
   }
 
   void _onStartExecution(StartExecution event, Emitter emit) {
@@ -29,6 +42,7 @@ class InspectionExecutionBloc
       ExecutionInProgress(
         currentStep: 0,
         answers: {},
+        notesByField: {},
         score: 0,
         pageController: PageController(),
       ),

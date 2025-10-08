@@ -113,6 +113,7 @@ class InspectionExecutionScreen extends StatelessWidget {
                                         FieldWidget(
                                           field: field,
                                           value: state.answers[field.id],
+                                          note: state.notesByField[field.id],
                                           onChanged: (val) {
                                             context
                                                 .read<InspectionExecutionBloc>()

@@ -20,3 +20,10 @@ class NextStep extends InspectionExecutionEvent {}
 class PreviousStep extends InspectionExecutionEvent {}
 
 class SubmitInspection extends InspectionExecutionEvent {}
+
+class SaveFieldNote extends InspectionExecutionEvent {  
+  final String fieldId;  
+  final String note;
+  
+  SaveFieldNote(this.fieldId, this.note);  
+}
