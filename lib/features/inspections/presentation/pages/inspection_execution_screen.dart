@@ -114,10 +114,34 @@ class InspectionExecutionScreen extends StatelessWidget {
                                           field: field,
                                           value: state.answers[field.id],
                                           note: state.notesByField[field.id],
+                                          attachments:
+                                              state.attachmentsByField[field
+                                                  .id] ??
+                                              const [],
                                           onChanged: (val) {
                                             context
                                                 .read<InspectionExecutionBloc>()
                                                 .add(AnswerField(field, val));
+                                          },
+                                          onAddAttachments: (newOnes) {
+                                            context
+                                                .read<InspectionExecutionBloc>()
+                                                .add(
+                                                  AddFieldAttachments(
+                                                    field.id,
+                                                    newOnes,
+                                                  ),
+                                                );
+                                          },
+                                          onRemoveAttachment: (index) {
+                                            context
+                                                .read<InspectionExecutionBloc>()
+                                                .add(
+                                                  RemoveFieldAttachmentAt(
+                                                    field.id,
+                                                    index,
+                                                  ),
+                                                );
                                           },
                                         ),
                                         const SizedBox(height: 16),

@@ -1,27 +1,37 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:dotted_border/dotted_border.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_bloc.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_event.dart';
+import 'package:layout_tests/features/inspections/models/field_attachment.dart';
 import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class FieldWidget extends StatelessWidget {
   final InspectionField field;
   final dynamic value;
   final String? note;
+  final List<FieldAttachment> attachments; // NOVO
   final Function(dynamic) onChanged;
+  final void Function(List<FieldAttachment>) onAddAttachments; // NOVO
+  final void Function(int) onRemoveAttachment; // NOVO
 
   const FieldWidget({
     super.key,
     required this.field,
     this.value,
     this.note,
+    this.attachments = const [],
     required this.onChanged,
+    required this.onAddAttachments,
+    required this.onRemoveAttachment,
   });
 
   InputDecoration _fieldDeco(String label, {String? hint}) => InputDecoration(
@@ -39,6 +49,8 @@ class FieldWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasNote = (note != null && note!.trim().isNotEmpty);
+    final attachments = this.attachments;
+    ;
 
     return Stack(
       children: [
@@ -70,6 +82,15 @@ class FieldWidget extends StatelessWidget {
                   _NotePreview(note: note!),
                 ],
 
+                // Miniaturas de anexos
+                if (attachments.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _AttachmentsGrid(
+                    attachments: attachments,
+                    onRemove: (i) => onRemoveAttachment(i),
+                  ),
+                ],
+
                 const SizedBox(height: 12),
                 const Divider(),
 
@@ -92,9 +113,7 @@ class FieldWidget extends StatelessWidget {
                       ),
                     ),
                     TextButton.icon(
-                      onPressed: () {
-                        // TODO: implementar ação de anexar mídia
-                      },
+                      onPressed: () => _pickAndAttachFiles(context),
                       icon: const Icon(
                         Icons.attach_file,
                         color: Colors.deepPurple,
@@ -138,6 +157,58 @@ class FieldWidget extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  Future<void> _pickAndAttachFiles(BuildContext context) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: [
+          'png',
+          'jpg',
+          'jpeg',
+          'gif',
+          'webp',
+          'pdf',
+          'doc',
+          'docx',
+          'xls',
+          'xlsx',
+          'csv',
+          'ppt',
+          'pptx',
+          'txt',
+        ],
+        withData: true, // web
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final List<FieldAttachment> newOnes = [];
+      for (final f in result.files) {
+        final name = f.name;
+        final mime = (f.extension != null)
+            ? _guessMimeFromExtension(f.extension!)
+            : null;
+
+        if (f.bytes != null && (kIsWeb || f.path == null)) {
+          newOnes.add(
+            FieldAttachment(name: name, mimeType: mime, bytes: f.bytes),
+          );
+        } else if (f.path != null) {
+          newOnes.add(
+            FieldAttachment(name: name, mimeType: mime, path: f.path),
+          );
+        }
+      }
+
+      if (newOnes.isNotEmpty)
+        onAddAttachments(newOnes); // <- não mexe na resposta
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Falha ao anexar: $e')));
+    }
   }
 
   /// Renderiza o conteúdo do campo (TextField, Select, Checkbox)
@@ -407,55 +478,411 @@ class FieldWidget extends StatelessWidget {
   void _createAction(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
-    showModalBottomSheet(
+    showGeneralDialog(
       context: context,
-      isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 16,
-          right: 16,
-          top: 24,
+      barrierDismissible: true,
+      barrierLabel: 'Criar ação',
+      barrierColor: Colors.black.withOpacity(0.4),
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (ctx, anim1, anim2) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: _RightSideSheet(
+            width: _sideSheetWidth(ctx),
+            child: _ActionForm(
+              formKey: formKey,
+              titleController: titleController,
+              descController: descController,
+              onCancel: () => Navigator.of(ctx).pop(),
+              onCreate: () {
+                if (formKey.currentState?.validate() != true) return;
+                final title = titleController.text.trim();
+                final desc = descController.text.trim();
+                // TODO: dispare evento no Bloc para criar ação de fato
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Ação criada: $title')));
+              },
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (ctx, anim, secAnim, child) {
+        final offset = Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic));
+        final fade = CurvedAnimation(parent: anim, curve: Curves.easeOut);
+        return SlideTransition(
+          position: offset,
+          child: FadeTransition(opacity: fade, child: child),
+        );
+      },
+    );
+  }
+
+  double _sideSheetWidth(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+    if (w >= 1280) return 420; // desktop
+    if (w >= 1024) return 380; // laptop
+    if (w >= 768) return w * 0.55; // tablet
+    return w; // mobile: vira um full-screen para caber
+  }
+}
+
+class _RightSideSheet extends StatelessWidget {
+  final double width;
+  final Widget child;
+
+  const _RightSideSheet({required this.width, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.only(
+      topLeft: const Radius.circular(16),
+      bottomLeft: const Radius.circular(16),
+      topRight: MediaQuery.of(context).size.width < width
+          ? const Radius.circular(16)
+          : Radius.zero,
+      bottomRight: MediaQuery.of(context).size.width < width
+          ? const Radius.circular(16)
+          : Radius.zero,
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Container(
+          width: width,
+          height: double.infinity,
+          decoration: BoxDecoration(
+            color: Theme.of(context).dialogBackgroundColor,
+            borderRadius: radius,
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16)],
+          ),
+          child: child,
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+      ),
+    );
+  }
+}
+
+class _ActionForm extends StatefulWidget {
+  final GlobalKey<FormState> formKey;
+  final TextEditingController titleController;
+  final TextEditingController descController;
+  final VoidCallback onCancel;
+  final VoidCallback onCreate;
+
+  const _ActionForm({
+    required this.formKey,
+    required this.titleController,
+    required this.descController,
+    required this.onCancel,
+    required this.onCreate,
+  });
+
+  @override
+  State<_ActionForm> createState() => _ActionFormState();
+}
+
+class _ActionFormState extends State<_ActionForm> {
+  String _priority = 'Baixa';
+  DateTime _dueDate = DateTime.now().add(const Duration(days: 7));
+  TimeOfDay _dueTime = const TimeOfDay(hour: 17, minute: 0);
+  String? _assignee = 'Richard Pine'; // mock
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+          ),
+          child: Row(
             children: [
-              const Text(
-                "Criar ação",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              FilledButton.tonalIcon(
+                onPressed: () {},
+                icon: const Icon(Icons.bolt),
+                label: const Text('Ação'),
+                style: FilledButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(labelText: "Título da ação"),
+              const Spacer(),
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: widget.onCancel,
+                tooltip: 'Fechar',
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: descController,
-                maxLines: 3,
-                decoration: const InputDecoration(labelText: "Descrição"),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  final title = titleController.text.trim();
-                  final desc = descController.text.trim();
-                  if (title.isNotEmpty) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Ação criada: $title")),
-                    );
-                  }
-                },
-                child: const Text("Salvar"),
-              ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
-      ),
+
+        // Body (scroll)
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Form(
+              key: widget.formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: widget.titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Adicionar título...',
+                      border: InputBorder.none,
+                    ),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Informe um título'
+                        : null,
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: widget.descController,
+                    decoration: const InputDecoration(
+                      hintText: 'Adicionar descrição...',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Prioridade
+                  _SectionRow(
+                    label: 'Prioridade',
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _priority,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'Baixa',
+                            child: Text('Baixa'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Média',
+                            child: Text('Média'),
+                          ),
+                          DropdownMenuItem(value: 'Alta', child: Text('Alta')),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _priority = v ?? _priority),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Prazo (data e hora)
+                  _SectionRow(
+                    label: 'Prazo',
+                    child: Row(
+                      children: [
+                        _IconLabel(
+                          icon: Icons.calendar_today,
+                          text: _fmtDate(_dueDate),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _dueDate,
+                              firstDate: DateTime.now().subtract(
+                                const Duration(days: 1),
+                              ),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365 * 3),
+                              ),
+                            );
+                            if (picked != null)
+                              setState(() => _dueDate = picked);
+                          },
+                          child: const Text('Alterar'),
+                        ),
+                        const SizedBox(width: 16),
+                        _IconLabel(
+                          icon: Icons.access_time,
+                          text: _dueTime.format(context),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton(
+                          onPressed: () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: _dueTime,
+                            );
+                            if (picked != null)
+                              setState(() => _dueTime = picked);
+                          },
+                          child: const Text('Alterar'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Responsáveis
+                  _SectionRow(
+                    label: 'Responsáveis',
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: Color(0xFF6B7280),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(_assignee ?? 'Selecionar')),
+                        TextButton(
+                          onPressed: () async {
+                            // TODO: abrir seletor de usuários
+                          },
+                          child: const Text('Alterar'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Local / Recurso / Rótulos (placeholders como no print)
+                  _SectionRow(
+                    label: 'Local',
+                    child: TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.add_location_alt_outlined),
+                      label: const Text('Adicionar local'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SectionRow(
+                    label: 'Recurso',
+                    child: TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.link_outlined),
+                      label: const Text('Adicionar recurso'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  _SectionRow(
+                    label: 'Rótulos',
+                    child: TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.sell_outlined),
+                      label: const Text('Adicionar rótulos'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: const [
+                      Icon(
+                        Icons.visibility,
+                        size: 16,
+                        color: Color(0xFF6B7280),
+                      ),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Visível para qualquer pessoa que tenha acesso à inspeção relevante.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // Footer
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
+          ),
+          child: Row(
+            children: [
+              OutlinedButton(
+                onPressed: widget.onCancel,
+                child: const Text('Cancelar'),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: widget.onCreate,
+                child: const Text('Criar'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _fmtDate(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+}
+
+class _SectionRow extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _SectionRow({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(label, style: const TextStyle(color: Color(0xFF6B7280))),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: child,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _IconLabel extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _IconLabel({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF6B7280)),
+        const SizedBox(width: 6),
+        Text(text),
+      ],
     );
   }
 }
@@ -927,4 +1354,180 @@ class _NotePreview extends StatelessWidget {
       ],
     );
   }
+}
+
+class _AttachmentsGrid extends StatelessWidget {
+  final List<FieldAttachment> attachments;
+  final ValueChanged<int> onRemove;
+
+  const _AttachmentsGrid({required this.attachments, required this.onRemove});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(attachments.length, (i) {
+        final a = attachments[i];
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                color: const Color(0xFFF9FAFB),
+              ),
+              child: a.isImage
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: _buildImageThumb(a),
+                    )
+                  : _FileIconPlaceholder(name: a.name),
+            ),
+            Positioned(
+              right: -6,
+              top: -6,
+              child: InkWell(
+                onTap: () => onRemove(i),
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, color: Colors.white, size: 14),
+                ),
+              ),
+            ),
+          ],
+        );
+      }),
+    );
+  }
+
+  Widget _buildImageThumb(FieldAttachment a) {
+    // Prioridade: bytes (web) > url (após upload) > path (mobile/desktop)
+    if (a.bytes != null) {
+      return Image.memory(
+        a.bytes!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _FileIconPlaceholder(name: a.name),
+      );
+    }
+    if (a.url != null && a.url!.isNotEmpty) {
+      return Image.network(
+        a.url!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _FileIconPlaceholder(name: a.name),
+      );
+    }
+    if (a.path != null && a.path!.isNotEmpty && !kIsWeb) {
+      // Evite usar File no web
+      return Image(
+        image: FileImage(File(a.path!)),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _FileIconPlaceholder(name: a.name),
+      );
+    }
+    return _FileIconPlaceholder(name: a.name);
+  }
+}
+
+String _guessMimeFromExtension(String ext) {
+  final e = ext.toLowerCase();
+  switch (e) {
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    case 'pdf':
+      return 'application/pdf';
+    case 'doc':
+      return 'application/msword';
+    case 'docx':
+      return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'xls':
+      return 'application/vnd.ms-excel';
+    case 'xlsx':
+      return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'csv':
+      return 'text/csv';
+    case 'ppt':
+      return 'application/vnd.ms-powerpoint';
+    case 'pptx':
+      return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    case 'txt':
+      return 'text/plain';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+class _FileIconPlaceholder extends StatelessWidget {
+  final String name;
+  const _FileIconPlaceholder({required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = name.split('.').last.toLowerCase();
+    IconData icon;
+    Color color;
+
+    if (['pdf'].contains(ext)) {
+      icon = Icons.picture_as_pdf;
+      color = const Color(0xFFE11D48);
+    } else if (['doc', 'docx', 'txt'].contains(ext)) {
+      icon = Icons.description;
+      color = const Color(0xFF2563EB);
+    } else if (['xls', 'xlsx', 'csv'].contains(ext)) {
+      icon = Icons.table_chart;
+      color = const Color(0xFF059669);
+    } else if (['ppt', 'pptx'].contains(ext)) {
+      icon = Icons.slideshow;
+      color = const Color(0xFFF59E0B);
+    } else {
+      icon = Icons.insert_drive_file;
+      color = const Color(0xFF6B7280);
+    }
+
+    return Center(child: Icon(icon, color: color, size: 28));
+  }
+}
+
+List<FieldAttachment> _attachmentsFromValue(dynamic v) {
+  if (v is List<FieldAttachment>) return v;
+  if (v is List) {
+    // tenta converter se vier de json
+    try {
+      return v
+          .map((e) {
+            if (e is FieldAttachment) return e;
+            if (e is Map<String, dynamic>) return FieldAttachment.fromJson(e);
+            return null;
+          })
+          .whereType<FieldAttachment>()
+          .toList();
+    } catch (_) {}
+  }
+  return <FieldAttachment>[];
+}
+
+bool _isImage(String? mimeOrName) {
+  if (mimeOrName == null) return false;
+  final lower = mimeOrName.toLowerCase();
+  return lower.startsWith('image/') ||
+      lower.endsWith('.png') ||
+      lower.endsWith('.jpg') ||
+      lower.endsWith('.jpeg') ||
+      lower.endsWith('.gif') ||
+      lower.endsWith('.webp');
 }
