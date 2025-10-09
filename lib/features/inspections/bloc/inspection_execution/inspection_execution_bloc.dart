@@ -132,6 +132,8 @@ class InspectionExecutionBloc
   void _onSubmitInspection(SubmitInspection event, Emitter emit) {
     final state = this.state;
     if (state is ExecutionInProgress) {
+      // FAZER UMA CHAMADA DE API
+
       emit(ExecutionFinished(state.answers, state.score));
     }
   }

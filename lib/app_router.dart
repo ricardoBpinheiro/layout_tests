@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:layout_tests/core/layout/app_shell.dart';
 import 'package:layout_tests/features/auth/pages/login_page.dart';
+import 'package:layout_tests/features/inspections/presentation/pages/inspection_execution_screen.dart';
 import 'package:layout_tests/features/inspections/presentation/pages/inspection_list_screen.dart';
+import 'package:layout_tests/features/inspections/models/inspection_summary_args.dart';
+import 'package:layout_tests/features/inspections/presentation/pages/inspection_summary_page.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
 import 'package:layout_tests/features/template_inspections/pages/inspection_template_form_screen.dart';
 import 'package:layout_tests/features/user/presentation/user_form_screen.dart';
 import 'package:layout_tests/pages/dashboard_page.dart';
@@ -17,6 +21,20 @@ class AppRouter {
     initialLocation: '/login',
     routes: [
       GoRoute(path: '/login', builder: (context, state) => LoginScreen()),
+      GoRoute(
+        path: '/inspections/execute',
+        builder: (context, state) {
+          final template = state.extra as InspectionTemplate;
+          return InspectionExecutionScreen(template: template);
+        },
+      ),
+      GoRoute(
+        path: '/inspections/summary',
+        builder: (context, state) {
+          final args = state.extra as InspectionSummaryArgs;
+          return Scaffold(body: InspectionSummaryPage(args: args));
+        },
+      ),
       ShellRoute(
         builder: (context, state, child) {
           return AppShell(child: child);
@@ -62,6 +80,7 @@ class AppRouter {
             path: '/inspections',
             builder: (context, state) => Scaffold(body: InspectionListScreen()),
           ),
+
           GoRoute(
             path: '/reports',
             pageBuilder: (context, state) {

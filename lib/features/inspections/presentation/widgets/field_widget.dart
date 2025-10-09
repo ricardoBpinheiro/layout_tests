@@ -13,6 +13,9 @@ import 'package:layout_tests/features/inspections/models/field_attachment.dart';
 import 'package:layout_tests/features/template_inspections/models/field_types.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_field.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:pro_image_editor/core/models/editor_callbacks/pro_image_editor_callbacks.dart';
+import 'package:pro_image_editor/core/models/editor_configs/pro_image_editor_configs.dart';
+import 'package:pro_image_editor/features/main_editor/main_editor.dart';
 
 class FieldWidget extends StatelessWidget {
   final InspectionField field;
@@ -180,34 +183,142 @@ class FieldWidget extends StatelessWidget {
           'pptx',
           'txt',
         ],
-        withData: true, // web
+        withData: true, // requerido no web
       );
       if (result == null || result.files.isEmpty) return;
 
-      final List<FieldAttachment> newOnes = [];
+      final List<FieldAttachment> toAdd = [];
+
       for (final f in result.files) {
         final name = f.name;
         final mime = (f.extension != null)
             ? _guessMimeFromExtension(f.extension!)
             : null;
+        final isImg = _isImageByExtOrMime(f.extension, mime);
 
-        if (f.bytes != null && (kIsWeb || f.path == null)) {
-          newOnes.add(
-            FieldAttachment(name: name, mimeType: mime, bytes: f.bytes),
+        // 1) Obter dados (bytes no web, path em mobile/desktop)
+        Uint8List? imageBytes;
+        String? filePath;
+
+        if (isImg) {
+          // Para imagem, vamos preferir bytes, pois o editor usa bytes facilmente
+          if (f.bytes != null) {
+            imageBytes = f.bytes;
+          } else if (f.path != null) {
+            // se não estiver no web, podemos ler do path
+            // Obs: se não quiser usar dart:io, remova este bloco e mantenha apenas bytes
+            try {
+              // ignore: avoid_web_libraries_in_flutter
+              final file = File(f.path!);
+              imageBytes = await file.readAsBytes();
+            } catch (_) {}
+          }
+        } else {
+          // Não-imagem
+          if (f.bytes != null && (kIsWeb || f.path == null)) {
+            toAdd.add(
+              FieldAttachment(name: name, mimeType: mime, bytes: f.bytes),
+            );
+            continue;
+          } else if (f.path != null) {
+            toAdd.add(
+              FieldAttachment(name: name, mimeType: mime, path: f.path),
+            );
+            continue;
+          }
+        }
+
+        // 2) Se for imagem, abrir o editor pro_image_editor
+        if (isImg && imageBytes != null) {
+          final editedBytes = await _openImageEditor(
+            context,
+            imageBytes,
+            fileName: name,
           );
-        } else if (f.path != null) {
-          newOnes.add(
-            FieldAttachment(name: name, mimeType: mime, path: f.path),
-          );
+          if (editedBytes != null && editedBytes.isNotEmpty) {
+            // Salvar como bytes (web-friendly). Se depois você fizer upload, troque por URL.
+            toAdd.add(
+              FieldAttachment(
+                name: name,
+                mimeType: mime ?? 'image/*',
+                bytes: editedBytes,
+              ),
+            );
+          }
+        } else if (isImg && filePath != null && !kIsWeb) {
+          // Fallback se não conseguiu bytes mas tem path (mobile/desktop)
+          // Abra o editor carregando via file path -> converta para bytes antes:
+          try {
+            final file = File(filePath);
+            final raw = await file.readAsBytes();
+            final editedBytes = await _openImageEditor(
+              context,
+              raw,
+              fileName: name,
+            );
+            if (editedBytes != null && editedBytes.isNotEmpty) {
+              toAdd.add(
+                FieldAttachment(
+                  name: name,
+                  mimeType: mime ?? 'image/*',
+                  bytes: editedBytes, // após editar, mantemos bytes
+                ),
+              );
+            }
+          } catch (_) {}
+        } else {
+          // Caso não tenha conseguido dados
+          debugPrint('Não foi possível processar o arquivo $name');
         }
       }
 
-      if (newOnes.isNotEmpty)
-        onAddAttachments(newOnes); // <- não mexe na resposta
+      if (toAdd.isNotEmpty) {
+        onAddAttachments(toAdd); // não mexe na resposta do campo
+      }
     } catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Falha ao anexar: $e')));
+    }
+  }
+
+  bool _isImageByExtOrMime(String? ext, String? mime) {
+    final e = (ext ?? '').toLowerCase();
+    if (mime != null && mime.toLowerCase().startsWith('image/')) return true;
+    return ['png', 'jpg', 'jpeg', 'gif', 'webp'].contains(e);
+  }
+
+  // Abre o editor do pro_image_editor e retorna os bytes resultantes
+  Future<Uint8List?> _openImageEditor(
+    BuildContext context,
+    Uint8List inputBytes, {
+    required String fileName,
+  }) async {
+    try {
+      final result = await Navigator.of(context).push<Uint8List?>(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ProImageEditor.memory(
+            inputBytes,
+            configs: ProImageEditorConfigs(
+              designMode: ImageEditorDesignMode.material,
+              // Ative/desative ferramentas conforme necessário:
+              // enabledTools: const [EditorTool.crop, EditorTool.draw, EditorTool.text, EditorTool.stickers, EditorTool.filters],
+              // cropAspectRatios: const [CropAspectRatios.original, CropAspectRatios.ratio1x1, CropAspectRatios.ratio16x9],
+            ),
+            callbacks: ProImageEditorCallbacks(
+              onImageEditingComplete: (Uint8List? bytes) async {
+                Navigator.of(context).pop(bytes);
+              },
+              // onCloseEditor: () => Navigator.of(context).pop(null),
+            ),
+          ),
+        ),
+      );
+      return result;
+    } catch (e) {
+      debugPrint('Erro ao abrir editor: $e');
+      return null;
     }
   }
 
@@ -381,38 +492,6 @@ class FieldWidget extends StatelessWidget {
               ),
             );
           },
-        ),
-      ],
-    );
-  }
-
-  /// Renderiza os botões de ação
-  Widget _buildActionButtons(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        // Adicionar anotação
-        TextButton.icon(
-          onPressed: () => _addAnnotation(context),
-          icon: const Icon(Icons.note_add, color: Colors.deepPurple),
-          label: const Text("Adicionar anotação"),
-          style: TextButton.styleFrom(foregroundColor: Colors.deepPurple),
-        ),
-        TextButton.icon(
-          onPressed: () {
-            // TODO: implementar ação de anexar mídia
-          },
-          icon: const Icon(Icons.attach_file, color: Colors.deepPurple),
-          label: const Text("Anexar mídia"),
-          style: TextButton.styleFrom(foregroundColor: Colors.deepPurple),
-        ),
-        // Criar ação
-        TextButton.icon(
-          onPressed: () => _createAction(context),
-          icon: const Icon(Icons.playlist_add_check, color: Colors.deepPurple),
-          label: const Text("Criar ação"),
-          style: TextButton.styleFrom(foregroundColor: Colors.deepPurple),
         ),
       ],
     );
@@ -1380,12 +1459,16 @@ class _AttachmentsGrid extends StatelessWidget {
                 border: Border.all(color: const Color(0xFFE5E7EB)),
                 color: const Color(0xFFF9FAFB),
               ),
-              child: a.isImage
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: _buildImageThumb(a),
-                    )
-                  : _FileIconPlaceholder(name: a.name),
+              child: InkWell(
+                onTap: () => _openAttachmentFullscreen(context, a),
+                borderRadius: BorderRadius.circular(8),
+                child: a.isImage
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _buildImageThumb(a),
+                      )
+                    : _FileIconPlaceholder(name: a.name),
+              ),
             ),
             Positioned(
               right: -6,
@@ -1406,6 +1489,88 @@ class _AttachmentsGrid extends StatelessWidget {
           ],
         );
       }),
+    );
+  }
+
+  void _openAttachmentFullscreen(BuildContext context, FieldAttachment a) {
+    final isImg = a.isImage;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'preview',
+      barrierColor: Colors.black.withOpacity(0.85),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, _, __) {
+        return GestureDetector(
+          onTap: () => Navigator.of(ctx).pop(),
+          child: Stack(
+            children: [
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: 1200,
+                    maxHeight: 900,
+                  ),
+                  child: isImg
+                      ? _buildFullscreenImage(a)
+                      : _buildFullscreenFilePlaceholder(a),
+                ),
+              ),
+              Positioned(
+                right: 16,
+                top: 16,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.of(ctx).pop(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFullscreenImage(FieldAttachment a) {
+    if (a.bytes != null) {
+      return InteractiveViewer(
+        child: Image.memory(a.bytes!, fit: BoxFit.contain),
+      );
+    }
+    if (a.url != null && a.url!.isNotEmpty) {
+      return InteractiveViewer(
+        child: Image.network(a.url!, fit: BoxFit.contain),
+      );
+    }
+    if (a.path != null && a.path!.isNotEmpty && !kIsWeb) {
+      return InteractiveViewer(
+        child: Image(image: FileImage(File(a.path!)), fit: BoxFit.contain),
+      );
+    }
+    return _FileIconPlaceholder(name: a.name);
+  }
+
+  Widget _buildFullscreenFilePlaceholder(FieldAttachment a) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _FileIconPlaceholder(name: a.name),
+          const SizedBox(height: 12),
+          Text(a.name, style: const TextStyle(color: Colors.black87)),
+          const SizedBox(height: 8),
+          const Text(
+            'Pré-visualização não disponível',
+            style: TextStyle(color: Colors.black54),
+          ),
+        ],
+      ),
     );
   }
 

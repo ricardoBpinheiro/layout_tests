@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_bloc.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_event.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_execution/inspection_execution_state.dart';
+import 'package:layout_tests/features/inspections/models/inspection_summary_args.dart';
 import 'package:layout_tests/features/inspections/presentation/widgets/field_widget.dart';
+import 'package:layout_tests/features/inspections/presentation/widgets/inspection_complete_dialog.dart';
 import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
 
 class InspectionExecutionScreen extends StatelessWidget {
@@ -17,7 +20,44 @@ class InspectionExecutionScreen extends StatelessWidget {
       create: (_) => InspectionExecutionBloc(template: template),
       child: Scaffold(
         appBar: AppBar(title: Text(template.name)),
-        body: BlocBuilder<InspectionExecutionBloc, InspectionExecutionState>(
+        body: BlocConsumer<InspectionExecutionBloc, InspectionExecutionState>(
+          listenWhen: (prev, curr) => prev.runtimeType != curr.runtimeType,
+          listener: (context, state) {
+            if (state is ExecutionFinished) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => InspectionCompleteDialog(
+                  onViewSummary: () {
+                    Navigator.of(context).pop();
+                    context.go(
+                      '/inspections/summary',
+                      extra: InspectionSummaryArgs(
+                        template: template,
+                        answers: state.answers,
+                        finalScore: state.finalScore,
+                        inspectorName: 'USUÁRIO ATUAL',
+                        finishedAt: DateTime.now(),
+                        media: [], // collectedMedia
+                      ),
+                    );
+                  },
+                  onClose: () {
+                    Navigator.of(context).pop();
+                    context.go('/inspections');
+                  },
+                  title: 'Inspeção concluída',
+                  subtitle: 'Tudo certo! Seus dados foram salvos com sucesso.',
+                  primaryLabel: 'Visualizar resumo',
+                  secondaryLabel: 'Salvar e fechar',
+                ),
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Inspeção finalizada.')),
+              );
+            }
+          },
           builder: (context, state) {
             if (state is! ExecutionInProgress) {
               return const Center(child: CircularProgressIndicator());
@@ -28,7 +68,6 @@ class InspectionExecutionScreen extends StatelessWidget {
 
             return Column(
               children: [
-                // Barra de Progresso/Pontuação
                 Padding(
                   padding: const EdgeInsets.all(8),
                   child: Row(

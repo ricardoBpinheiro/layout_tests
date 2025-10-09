@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:layout_tests/app_injection.dart';
 import 'package:layout_tests/features/inspections/bloc/template_bloc.dart';
 import 'package:layout_tests/features/inspections/bloc/template_event.dart';
@@ -251,14 +252,20 @@ class _TemplateSelectionContentState extends State<TemplateSelectionContent> {
                 ? null
                 : () {
                     final selectedTemplate = (state).selectedTemplate!;
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => InspectionExecutionScreen(
-                          template: selectedTemplate,
-                        ),
-                      ),
+                    Navigator.of(context).pop();
+
+                    context.push(
+                      '/inspections/execute',
+                      extra: selectedTemplate,
                     );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (_) => InspectionExecutionScreen(
+                    //       template: selectedTemplate,
+                    //     ),
+                    //   ),
+                    // );
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
