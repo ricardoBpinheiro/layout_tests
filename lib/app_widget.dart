@@ -4,6 +4,8 @@ import 'package:layout_tests/app_injection.dart';
 import 'package:layout_tests/app_router.dart';
 import 'package:layout_tests/core/widgets/user_selection/bloc/user_selection_bloc.dart';
 import 'package:layout_tests/core/widgets/user_selection/domain/repositories/user_repository.dart';
+import 'package:layout_tests/features/actions/bloc/action_bloc.dart';
+import 'package:layout_tests/features/actions/repositories/action_repository.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_bloc.dart';
 import 'package:layout_tests/features/inspections/bloc/template_bloc.dart';
 import 'package:layout_tests/features/inspections/data/inspection_repository.dart';
@@ -30,6 +32,11 @@ class AppWidget extends StatelessWidget {
         ),
         BlocProvider<UserSelectionBloc>(
           create: (context) => UserSelectionBloc(getIt<UserRepository>()),
+        ),
+
+        BlocProvider<ActionBloc>(
+          create: (context) =>
+              ActionBloc(repository: getIt<ActionRepository>()),
         ),
       ],
       child: MaterialApp.router(

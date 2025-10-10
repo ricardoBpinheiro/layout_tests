@@ -28,6 +28,7 @@ class _InspectionTemplatesContentState
       version: 2,
       createdAt: DateTime.now().subtract(const Duration(days: 10)),
       createdBy: 'João Silva',
+      folder: 'Qualidade',
     ),
     InspectionTemplate(
       id: '2',
@@ -40,6 +41,7 @@ class _InspectionTemplatesContentState
       status: 'Inativo',
       createdAt: DateTime.now().subtract(const Duration(days: 5)),
       createdBy: 'Maria Santos',
+      folder: 'Engenharia',
     ),
     InspectionTemplate(
       id: '3',
@@ -51,12 +53,23 @@ class _InspectionTemplatesContentState
       version: 1,
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
       createdBy: 'Pedro Costa',
+      folder: 'Almoxarifado',
     ),
   ];
 
   bool _isLoading = false;
   String _searchQuery = '';
   String _filterSector = 'Todos';
+  String _selectedFolder = 'Todas';
+
+  List<String> get folders {
+    final set = <String>{};
+    for (final t in templates) {
+      set.add(t.folder.isEmpty ? 'Geral' : t.folder);
+    }
+    final list = set.toList()..sort();
+    return ['Todas', ...list];
+  }
 
   List<InspectionTemplate> get filteredTemplates {
     var filtered = templates.where((template) {
@@ -70,7 +83,12 @@ class _InspectionTemplatesContentState
       final matchesSector =
           _filterSector == 'Todos' || template.sector == _filterSector;
 
-      return matchesSearch && matchesSector;
+      final matchesFolder =
+          _selectedFolder == 'Todas' ||
+          (template.folder.isEmpty ? 'Geral' : template.folder) ==
+              _selectedFolder;
+
+      return matchesSearch && matchesSector && matchesFolder;
     }).toList();
 
     return filtered;
@@ -281,6 +299,52 @@ class _InspectionTemplatesContentState
             ],
           ),
 
+          const SizedBox(height: 12),
+
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: folders.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final folder = folders[index];
+                final selected = folder == _selectedFolder;
+                return ChoiceChip(
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _iconForFolder(folder),
+                        size: 16,
+                        color: selected
+                            ? Colors.white
+                            : const Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(folder),
+                    ],
+                  ),
+                  selected: selected,
+                  onSelected: (_) => setState(() => _selectedFolder = folder),
+                  selectedColor: const Color(0xFF2563EB),
+                  backgroundColor: Colors.white,
+                  labelStyle: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF374151),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  shape: StadiumBorder(
+                    side: BorderSide(
+                      color: selected
+                          ? const Color(0xFF2563EB)
+                          : const Color(0xFFD1D5DB),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
           const SizedBox(height: 20),
 
           // Grid de Templates
@@ -296,6 +360,23 @@ class _InspectionTemplatesContentState
         ],
       ),
     );
+  }
+
+  IconData _iconForFolder(String folder) {
+    final f = folder.toLowerCase();
+    if (f.contains('seguran') || f.contains('sst') || f.contains('trabalho')) {
+      return Icons.health_and_safety;
+    }
+    if (f.contains('engenh')) {
+      return Icons.build;
+    }
+    if (f.contains('almox') || f.contains('estoque')) {
+      return Icons.inventory_2;
+    }
+    if (f.contains('qualid')) {
+      return Icons.verified_user;
+    }
+    return Icons.folder;
   }
 
   Widget _buildViewToggleButton({

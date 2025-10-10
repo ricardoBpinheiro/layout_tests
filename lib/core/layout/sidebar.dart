@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:layout_tests/core/helpers/ui_helpers.dart';
 import 'package:layout_tests/features/sidebar/bloc/side_bar_bloc.dart';
 
 class CustomSidebar extends StatelessWidget {
@@ -19,31 +20,45 @@ class CustomSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final menuItems = [
+    final allItems = [
       {'icon': Icons.dashboard, 'title': 'Dashboard', 'route': '/dashboard'},
       {'icon': Icons.people, 'title': 'Usuários', 'route': '/users'},
+      {'icon': Icons.checklist_outlined, 'title': 'Ações', 'route': '/actions'},
       {'icon': Icons.inventory, 'title': 'Templates', 'route': '/templates'},
-      {'icon': Icons.dashboard_customize_sharp, 'title': 'Inspeções', 'route': '/inspections'},
+      {
+        'icon': Icons.dashboard_customize_sharp,
+        'title': 'Inspeções',
+        'route': '/inspections',
+      },
       {'icon': Icons.analytics, 'title': 'Relatórios', 'route': '/reports'},
       {'icon': Icons.settings, 'title': 'Configurações', 'route': '/settings'},
     ];
+
+    final isMobileScreen = isMobile(context);
+    final menuItems = isMobileScreen
+        ? allItems.where((i) {
+            final r = i['route'] as String;
+            return r == '/templates' || r == '/inspections' || r == '/actions';
+          }).toList()
+        : allItems;
 
     final companies = ['Empresa A', 'Empresa B', 'Empresa C', 'Empresa D'];
 
     return Container(
       width: isExpanded ? 200 : 70,
       decoration: BoxDecoration(
-        color: Color(0xFF2C3E50),
+        color: const Color(0xFF2C3E50),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
-            offset: Offset(2, 0),
+            offset: const Offset(2, 0),
           ),
         ],
       ),
       child: Column(
         children: [
+          // Header da sidebar
           Container(
             height: 60,
             padding: EdgeInsets.symmetric(horizontal: isExpanded ? 12 : 16),
@@ -55,13 +70,13 @@ class CustomSidebar extends StatelessWidget {
             child: isExpanded
                 ? Row(
                     children: [
-                      Icon(Icons.business, color: Colors.white, size: 24),
-                      SizedBox(width: 8),
+                      const Icon(Icons.business, color: Colors.white, size: 24),
+                      const SizedBox(width: 8),
                       Flexible(
                         fit: FlexFit.loose,
                         child: Text(
                           'Layout Tester',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -71,39 +86,39 @@ class CustomSidebar extends StatelessWidget {
                       ),
                     ],
                   )
-                : Center(
+                : const Center(
                     child: Icon(Icons.business, color: Colors.white, size: 30),
                   ),
           ),
-          if (isExpanded)
+
+          // Dropdown de empresas (opcionalmente ocultar em mobile)
+          if (isExpanded && !isMobileScreen)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Container(
                 width: double.infinity,
                 height: 36,
-                padding: EdgeInsets.symmetric(horizontal: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                  ),
+                  border: Border.all(color: Colors.white.withValues(alpha: .2)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: selectedCompany ?? 'Empresa A',
                     isExpanded: true,
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.keyboard_arrow_down,
                       color: Colors.white70,
                       size: 18,
                     ),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
-                    dropdownColor: Color(0xFF34495E),
+                    dropdownColor: const Color(0xFF34495E),
                     items: companies.map<DropdownMenuItem<String>>((
                       String company,
                     ) {
@@ -111,7 +126,10 @@ class CustomSidebar extends StatelessWidget {
                         value: company,
                         child: Text(
                           company,
-                          style: TextStyle(color: Colors.white, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                          ),
                         ),
                       );
                     }).toList(),
@@ -126,16 +144,21 @@ class CustomSidebar extends StatelessWidget {
                 ),
               ),
             ),
+
+          // Lista de menus (filtrada em mobile)
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               itemCount: menuItems.length,
               itemBuilder: (context, index) {
                 final item = menuItems[index];
                 final isSelected = currentRoute == item['route'];
 
                 return Container(
-                  margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? Colors.white.withValues(alpha: 0.1)
@@ -199,20 +222,23 @@ class CustomSidebar extends StatelessWidget {
               },
             ),
           ),
-          Container(
-            padding: EdgeInsets.all(8),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                onPressed: () =>
-                    context.read<SidebarBloc>().add(ToggleSidebar()),
-                icon: Icon(
-                  isExpanded ? Icons.chevron_left : Icons.chevron_right,
-                  color: Colors.white70,
+
+          // Botão de expandir/retrair (opcional ocultar em mobile)
+          if (!isMobileScreen)
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  onPressed: () =>
+                      context.read<SidebarBloc>().add(ToggleSidebar()),
+                  icon: Icon(
+                    isExpanded ? Icons.chevron_left : Icons.chevron_right,
+                    color: Colors.white70,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );

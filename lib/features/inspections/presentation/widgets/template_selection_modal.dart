@@ -258,14 +258,6 @@ class _TemplateSelectionContentState extends State<TemplateSelectionContent> {
                       '/inspections/execute',
                       extra: selectedTemplate,
                     );
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (_) => InspectionExecutionScreen(
-                    //       template: selectedTemplate,
-                    //     ),
-                    //   ),
-                    // );
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),

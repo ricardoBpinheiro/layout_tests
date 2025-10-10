@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:data_table_2/data_table_2.dart';
+import 'package:go_router/go_router.dart';
 import 'package:layout_tests/app_injection.dart';
 import 'package:layout_tests/features/inspections/bloc/inspection_bloc.dart';
 import 'package:layout_tests/features/inspections/data/inspection_repository.dart';
 import 'package:layout_tests/features/inspections/models/inspection.dart';
+import 'package:layout_tests/features/inspections/presentation/widgets/mobile/mobile_inspections.dart';
 import 'package:layout_tests/features/inspections/presentation/widgets/template_selection_modal.dart';
+import 'package:layout_tests/features/template_inspections/models/inspection_template.dart';
 
 class InspectionListScreen extends StatelessWidget {
   const InspectionListScreen({super.key});
@@ -30,6 +33,7 @@ class InspectionListView extends StatefulWidget {
 
 class _InspectionListViewState extends State<InspectionListView> {
   final TextEditingController _searchController = TextEditingController();
+  bool get _isMobile => MediaQuery.of(context).size.width < 700;
 
   @override
   void initState() {
@@ -75,6 +79,16 @@ class _InspectionListViewState extends State<InspectionListView> {
         }
       },
       builder: (context, state) {
+        if (_isMobile) {
+          return MobileInspections(
+            state: state,
+            searchController: _searchController,
+            onStartFromTemplate: _onStartFromTemplate,
+            onShowTemplatePicker: () => _showTemplateSelectionModal(context),
+            onShowOptions: _showOptionsMenu,
+          );
+        }
+
         return Scaffold(
           backgroundColor: const Color(0xFFF5F5F7),
           body: Row(
@@ -88,8 +102,6 @@ class _InspectionListViewState extends State<InspectionListView> {
                   ],
                 ),
               ),
-              // if (state is InspectionLoaded && state.showDetailsPanel)
-              // _buildDetailsPanel(context, state.selectedInspection!),
             ],
           ),
         );
@@ -178,20 +190,6 @@ class _InspectionListViewState extends State<InspectionListView> {
                   horizontal: 16,
                   vertical: 12,
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Adicionar filtro'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF6366F1),
-              side: const BorderSide(color: Color(0xFFE5E7EB)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
               ),
             ),
           ),
@@ -662,6 +660,10 @@ class _InspectionListViewState extends State<InspectionListView> {
         _showDeleteConfirmation(context, inspection);
         break;
     }
+  }
+
+  void _onStartFromTemplate(InspectionTemplate template) {
+    context.push('/inspections/execute', extra: template);
   }
 
   void _showDeleteConfirmation(BuildContext context, Inspection inspection) {

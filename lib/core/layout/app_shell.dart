@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:layout_tests/core/helpers/ui_helpers.dart';
 import 'package:layout_tests/core/layout/header.dart';
 import 'package:layout_tests/core/layout/sidebar.dart';
 import 'package:layout_tests/features/sidebar/bloc/side_bar_bloc.dart';
@@ -13,26 +14,46 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    String pageTitle;
+    final isMobileScreen = isMobile(context);
+    String pageTitle = _getPageTitle(location);
 
-    switch (location) {
-      case '/dashboard':
-        pageTitle = 'Dashboard';
-        break;
-      case '/users':
-        pageTitle = 'Gerenciar Usuários';
-        break;
-      case '/products':
-        pageTitle = 'Produtos';
-        break;
-      case '/reports':
-        pageTitle = 'Relatórios';
-        break;
-      case '/settings':
-        pageTitle = 'Configurações';
-        break;
-      default:
-        pageTitle = 'Dashboard';
+    if (isMobileScreen) {
+      final currentIndex = _mobileIndexFromRoute(location);
+
+      return Scaffold(
+        appBar: AppBar(title: Text(pageTitle)),
+        body: Padding(padding: const EdgeInsets.all(16), child: child),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: (idx) {
+            switch (idx) {
+              case 0:
+                context.go('/templates');
+                break;
+              case 1:
+                context.go('/inspections');
+                break;
+              case 2:
+                context.go('/inspections');
+                break;
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory),
+              label: 'Templates',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_customize_sharp),
+              label: 'Inspeções',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.checklist_outlined),
+              label: 'Ações',
+            ),
+          ],
+        ),
+      );
     }
 
     return Scaffold(
@@ -77,6 +98,41 @@ class AppShell extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  int _mobileIndexFromRoute(String route) {
+    switch (route) {
+      case '/actions':
+        return 2;
+      case '/inspections':
+        return 1;
+      case '/templates':
+      default:
+        return 0;
+    }
+  }
+
+  String _getPageTitle(String location) {
+    switch (location) {
+      case '/dashboard':
+        return 'Dashboard';
+      case '/users':
+        return 'Gerenciar Usuários';
+      case '/products':
+        return 'Produtos';
+      case '/reports':
+        return 'Relatórios';
+      case '/settings':
+        return 'Configurações';
+      case '/templates':
+        return 'Templates';
+      case '/inspections':
+        return 'Inspeções';
+      case '/actions':
+        return 'Ações';
+      default:
+        return 'Dashboard';
+    }
   }
 
   String _getSelectedItemFromRoute(String route) {

@@ -13,6 +13,8 @@ class InspectionTemplate {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final String createdBy;
+  final String? imageUrl;
+  final String folder;
 
   InspectionTemplate({
     required this.id,
@@ -26,6 +28,8 @@ class InspectionTemplate {
     required this.createdAt,
     this.updatedAt,
     required this.createdBy,
+    this.imageUrl,
+    this.folder = 'Geral',
   });
 
   InspectionTemplate copyWith({
@@ -40,6 +44,7 @@ class InspectionTemplate {
     DateTime? createdAt,
     DateTime? updatedAt,
     String? createdBy,
+    String? folder,
   }) {
     return InspectionTemplate(
       id: id ?? this.id,
@@ -53,6 +58,7 @@ class InspectionTemplate {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
+      folder: folder ?? this.folder,
     );
   }
 

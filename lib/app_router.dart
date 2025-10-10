@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:layout_tests/core/layout/app_shell.dart';
+import 'package:layout_tests/features/actions/presentation/action_details_screen.dart';
+import 'package:layout_tests/features/actions/presentation/action_form_screen.dart';
+import 'package:layout_tests/features/actions/presentation/actions_list_screen.dart';
 import 'package:layout_tests/features/auth/pages/login_page.dart';
 import 'package:layout_tests/features/inspections/presentation/pages/inspection_execution_screen.dart';
 import 'package:layout_tests/features/inspections/presentation/pages/inspection_list_screen.dart';
@@ -75,6 +78,21 @@ class AppRouter {
             builder: (context, state) => InspectionTemplateFormScreen(
               templateId: state.pathParameters['id'],
             ),
+          ),
+
+          GoRoute(
+            path: '/actions',
+            builder: (context, state) => ActionsListScreen(),
+          ),
+
+          GoRoute(
+            path: '/actions/create',
+            builder: (context, state) => ActionFormScreen(),
+          ),
+          GoRoute(
+            path: '/actions/:id',
+            builder: (context, state) =>
+                ActionDetailsScreen(actionId: state.pathParameters['id'] ?? ''),
           ),
           GoRoute(
             path: '/inspections',
